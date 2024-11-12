@@ -26,7 +26,7 @@ interface State {
 
 export const useStore = create<State>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       collections: [],
       currentCollection: null,
       currentCardIndex: 0,

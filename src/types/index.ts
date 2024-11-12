@@ -2,7 +2,6 @@ export interface Flashcard {
   id: string;
   question: string;
   answer: string;
-  tags: string[];
   lastReviewed: number;
   nextReview: number;
   interval: number;
