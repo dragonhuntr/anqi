@@ -29,8 +29,15 @@ function App() {
     ? collections.find((c: FlashcardCollection) => c.id === currentCollection)?.cards ?? []
     : [];
 
+  // shuffle cards
+  const shuffleCards = (cards: Flashcard[]): Flashcard[] => {
+    return [...cards].sort(() => Math.random() - 0.5);
+  };
+
   // filter cards due for review
-  const dueCards: Flashcard[] = currentCards.filter((card: Flashcard) => card.nextReview <= Date.now());
+  const dueCards: Flashcard[] = shuffleCards(
+    currentCards.filter((card: Flashcard) => card.nextReview <= Date.now())
+  );
 
   const handleExport = () => {
     if (!currentCollection) return;
@@ -99,6 +106,8 @@ function App() {
               <FlashCard
                 question={dueCards[currentCardIndex].question}
                 answer={dueCards[currentCardIndex].answer}
+                currentIndex={currentCardIndex}
+                totalCards={dueCards.length}
                 onNext={() => {
                   if (currentCardIndex < dueCards.length - 1) {
                     useStore.setState({ currentCardIndex: currentCardIndex + 1 });

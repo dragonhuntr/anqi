@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RotateCcw, Maximize2, Minimize2 } from 'lucide-react';
 
 interface FlashCardProps {
   question: string;
   answer: string;
+  currentIndex: number;
+  totalCards: number;
   onNext: () => void;
   onPrev: () => void;
   onRate: (rating: number) => void;
@@ -13,11 +15,24 @@ interface FlashCardProps {
 export function FlashCard({
   question,
   answer,
+  currentIndex,
+  totalCards,
   onNext,
   onPrev,
   onRate,
 }: FlashCardProps) {
   const [isFlipped, setIsFlipped] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const handleFullscreen = async () => {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      await document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -40,6 +55,30 @@ export function FlashCard({
 
   return (
     <div className="w-full max-w-2xl mx-auto p-4">
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            Card {currentIndex + 1} of {totalCards}
+          </span>
+          <button
+            onClick={handleFullscreen}
+            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            {isFullscreen ? (
+              <Minimize2 className="w-5 h-5 dark:text-white" />
+            ) : (
+              <Maximize2 className="w-5 h-5 dark:text-white" />
+            )}
+          </button>
+        </div>
+        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+          <div
+            className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+            style={{ width: `${((currentIndex + 1) / totalCards) * 100}%` }}
+          />
+        </div>
+      </div>
+
       <div className="relative h-[400px] perspective-1000">
         <motion.div
           className="w-full h-full relative preserve-3d cursor-pointer"
