@@ -22,6 +22,7 @@ interface State {
   deleteCard: (collectionId: string, cardId: string) => void;
   toggleDarkMode: () => void;
   updateStats: (correct: boolean) => void;
+  editCard: (collectionId: string, cardId: string, question: string, answer: string) => void;
 }
 
 export const useStore = create<State>()(
@@ -143,6 +144,20 @@ export const useStore = create<State>()(
             lastStudyDate: Date.now(),
           },
         })),
+      editCard: (collectionId, cardId, question, answer) => set((state) => ({
+        collections: state.collections.map((c) =>
+          c.id === collectionId
+            ? {
+                ...c,
+                cards: c.cards.map((card) =>
+                  card.id === cardId
+                    ? { ...card, question, answer }
+                    : card
+                ),
+              }
+            : c
+        ),
+      })),
     }),
     {
       name: 'flashcards-storage',

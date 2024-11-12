@@ -4,6 +4,7 @@ import { FlashCard } from './components/FlashCard';
 import { ImportDialog } from './components/ImportDialog';
 import { Stats } from './components/Stats';
 import { CollectionManager } from './components/CollectionManager';
+import { CollectionDetails } from './components/CollectionDetails';
 import { useStore } from './store/useStore';
 import { Flashcard, FlashcardCollection } from './types'; // added FlashcardCollection import
 
@@ -89,7 +90,7 @@ function App() {
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Stats stats={stats} />
           <CollectionManager />
-
+          <CollectionDetails />
           {currentCollection ? (
             dueCards.length > 0 ? (
               <FlashCard

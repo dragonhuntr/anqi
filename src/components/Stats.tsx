@@ -1,4 +1,3 @@
-import React from 'react';
 import { Trophy, Target, Calendar } from 'lucide-react';
 import { StudyStats } from '../types';
 
