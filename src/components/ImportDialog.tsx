@@ -3,20 +3,20 @@ import Papa from 'papaparse';
 import { Upload, X } from 'lucide-react';
 
 interface ImportDialogProps {
-  onImport: (cards: { question: string; answer: string; tags: string[] }[]) => void;
+  onImport: (cards: Array<{ question: string; answer: string; tags: string[] }>) => void;
   onClose: () => void;
 }
 
 export function ImportDialog({ onImport, onClose }: ImportDialogProps) {
-  const [csvContent, setCsvContent] = useState('');
-  const [error, setError] = useState('');
+  const [csvContent, setCsvContent] = useState<string>('');
+  const [error, setError] = useState<string>('');
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     Papa.parse(file, {
-      complete: (results) => handleParsedData(results.data),
+      complete: (results) => handleParsedData(results.data as any[]),
       error: (error) => setError(error.message),
     });
   };
@@ -26,9 +26,9 @@ export function ImportDialog({ onImport, onClose }: ImportDialogProps) {
       const cards = data
         .filter((row) => row.length >= 2 && row[0] && row[1])
         .map((row) => ({
-          question: row[0],
-          answer: row[1],
-          tags: row[2] ? row[2].split(',').map((tag: string) => tag.trim()) : [],
+          question: row[0] as string,
+          answer: row[1] as string,
+          tags: row[2] ? (row[2] as string).split(',').map((tag: string) => tag.trim()) : [],
         }));
 
       if (cards.length === 0) {
@@ -46,7 +46,7 @@ export function ImportDialog({ onImport, onClose }: ImportDialogProps) {
   const handlePaste = () => {
     try {
       const data = Papa.parse(csvContent);
-      handleParsedData(data.data);
+      handleParsedData(data.data as any[]);
     } catch (err) {
       setError('Error processing pasted data');
     }

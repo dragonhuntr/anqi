@@ -1,4 +1,3 @@
-const INITIAL_EASE_FACTOR = 2.5;
 const MINIMUM_EASE_FACTOR = 1.3;
 
 export function calculateNextReview(

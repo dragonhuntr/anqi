@@ -16,3 +16,11 @@ export interface StudyStats {
   streak: number;
   lastStudyDate: number;
 }
+
+export interface FlashcardCollection {
+  id: string;
+  name: string;
+  dateAdded: number;
+  topic: string;
+  cards: Flashcard[];
+}
