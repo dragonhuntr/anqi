@@ -1,16 +1,12 @@
 import React, { useState } from 'react';
-import { Folder, Edit, Trash2, Plus } from 'lucide-react';
+import { Folder, Edit, Trash2, Plus, Play, Maximize2, Minimize2 } from 'lucide-react';
 import { useStore } from '../store/useStore';
-import { FlashcardCollection } from '../types';
+import { FlashcardCollection, CollectionManagerProps, CollectionFormData, ViewMode } from '../types';
 
-interface CollectionFormData {
-  name: string;
-  topic: string;
-}
-
-export function CollectionManager() {
+export function CollectionManager({ onViewModeChange }: CollectionManagerProps) {
   const [isAdding, setIsAdding] = useState<boolean>(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [formData, setFormData] = useState<CollectionFormData>({
     name: '',
     topic: '',
@@ -24,6 +20,21 @@ export function CollectionManager() {
     deleteCollection,
     setCurrentCollection,
   } = useStore();
+
+  const handleViewModeChange = (mode: ViewMode, collectionId: string) => {
+    setCurrentCollection(collectionId);
+    onViewModeChange(mode);
+  };
+
+  const handleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,12 +55,25 @@ export function CollectionManager() {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold dark:text-white">Collections</h2>
-        <button
-          onClick={() => setIsAdding(true)}
-          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-        >
-          <Plus className="w-5 h-5 dark:text-white" />
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleFullscreen}
+            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+            title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          >
+            {isFullscreen ? (
+              <Minimize2 className="w-5 h-5 dark:text-white" />
+            ) : (
+              <Maximize2 className="w-5 h-5 dark:text-white" />
+            )}
+          </button>
+          <button
+            onClick={() => setIsAdding(true)}
+            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            <Plus className="w-5 h-5 dark:text-white" />
+          </button>
+        </div>
       </div>
 
       {(isAdding || editingId) && (
@@ -99,7 +123,6 @@ export function CollectionManager() {
                 ? 'border-blue-500 dark:border-blue-400'
                 : 'border-gray-200 dark:border-gray-700'
             } hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer`}
-            onClick={() => setCurrentCollection(collection.id)}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
@@ -115,6 +138,16 @@ export function CollectionManager() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    handleViewModeChange('play', collection.id);
+                  }}
+                  className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+                >
+                  <Play className="w-4 h-4 text-green-500" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleViewModeChange('edit', collection.id);
                     setEditingId(collection.id);
                     setFormData({
                       name: collection.name,
@@ -141,4 +174,4 @@ export function CollectionManager() {
       </div>
     </div>
   );
-} 
+}

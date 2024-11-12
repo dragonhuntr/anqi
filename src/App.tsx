@@ -6,7 +6,7 @@ import { Stats } from './components/Stats';
 import { CollectionManager } from './components/CollectionManager';
 import { CollectionDetails } from './components/CollectionDetails';
 import { useStore } from './store/useStore';
-import { Flashcard, FlashcardCollection } from './types'; // added FlashcardCollection import
+import { Flashcard, FlashcardCollection, ViewMode } from './types';
 
 function App() {
   const {
@@ -21,7 +21,8 @@ function App() {
     updateStats,
   } = useStore();
 
-  const [showImport, setShowImport] = useState<boolean>(false); // added type assertion
+  const [showImport, setShowImport] = useState<boolean>(false);
+  const [viewMode, setViewMode] = useState<ViewMode>(null);
 
   // get current collection's cards
   const currentCards: Flashcard[] = currentCollection
@@ -89,9 +90,11 @@ function App() {
 
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Stats stats={stats} />
-          <CollectionManager />
-          <CollectionDetails />
-          {currentCollection ? (
+          <CollectionManager onViewModeChange={setViewMode} />
+          
+          {viewMode === 'edit' && <CollectionDetails />}
+          
+          {viewMode === 'play' && currentCollection && (
             dueCards.length > 0 ? (
               <FlashCard
                 question={dueCards[currentCardIndex].question}
@@ -119,10 +122,12 @@ function App() {
                 </p>
               </div>
             )
-          ) : (
+          )}
+          
+          {!viewMode && (
             <div className="text-center py-12">
               <p className="text-xl text-gray-600 dark:text-gray-300">
-                Please select a collection to start reviewing cards.
+                Select a collection and choose to edit or play.
               </p>
             </div>
           )}

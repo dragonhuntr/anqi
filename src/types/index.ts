@@ -23,3 +23,14 @@ export interface FlashcardCollection {
   topic: string;
   cards: Flashcard[];
 }
+
+export type ViewMode = 'edit' | 'play' | null;
+
+export interface CollectionManagerProps {
+  onViewModeChange: (mode: ViewMode) => void;
+}
+
+export interface CollectionFormData {
+  name: string;
+  topic: string;
+}
