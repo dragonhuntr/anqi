@@ -34,8 +34,8 @@ function App() {
     if (!currentCollection) return;
     
     const csv = currentCards
-      .map(({ question, answer, tags }: Flashcard) => 
-        `${question},${answer},${tags.join(',')}`)
+      .map(({ question, answer }: Flashcard) => 
+        `${question},${answer}`)
       .join('\n');
     
     const blob = new Blob([csv], { type: 'text/csv' });
