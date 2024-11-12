@@ -68,20 +68,6 @@ function App() {
             </h1>
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => setShowImport(true)}
-                disabled={!currentCollection}
-                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
-              >
-                <Plus className="w-5 h-5 dark:text-white" />
-              </button>
-              <button
-                onClick={handleExport}
-                disabled={!currentCollection}
-                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
-              >
-                <Download className="w-5 h-5 dark:text-white" />
-              </button>
-              <button
                 onClick={toggleDarkMode}
                 className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
               >

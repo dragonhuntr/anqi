@@ -39,8 +39,10 @@ export function FlashCard({
       if (e.code === 'Space') {
         setIsFlipped((prev) => !prev);
       } else if (e.code === 'ArrowRight') {
+        if (isFlipped) setIsFlipped(false);
         onNext();
       } else if (e.code === 'ArrowLeft') {
+        if (isFlipped) setIsFlipped(false);
         onPrev();
       } else if (e.key >= '1' && e.key <= '5' && isFlipped) {
         onRate(parseInt(e.key));
