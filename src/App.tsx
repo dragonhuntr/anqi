@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Moon, Sun, Plus, Download } from 'lucide-react';
+import { Moon, Sun } from 'lucide-react';
 import { FlashCard } from './components/FlashCard';
 import { ImportDialog } from './components/ImportDialog';
 import { Stats } from './components/Stats';
