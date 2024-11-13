@@ -38,3 +38,11 @@ export interface CollectionFormData {
 export interface CollectionDetailsProps {
   viewMode: ViewMode;
 }
+
+export type FileType = 'CSV' | 'TXT' | 'PDF' | 'PPTX' | 'PNG' | 'JPEG';
+
+export interface GenerationOptions {
+  complexity: 'basic' | 'intermediate' | 'advanced';
+  numQuestions: number;
+  topic?: string;
+}
