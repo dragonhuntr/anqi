@@ -46,3 +46,15 @@ export interface GenerationOptions {
   numQuestions: number;
   topic?: string;
 }
+
+export interface APIError {
+  message: string;
+  code?: string;
+  details?: unknown;
+}
+
+export interface ProcessingResult<T> {
+  data?: T;
+  error?: APIError;
+  loading?: boolean;
+}

@@ -39,25 +39,6 @@ function App() {
     currentCards.filter((card: Flashcard) => card.nextReview <= Date.now())
   );
 
-  const handleExport = () => {
-    if (!currentCollection) return;
-    
-    const csv = currentCards
-      .map(({ question, answer }: Flashcard) => 
-        `${question},${answer}`)
-      .join('\n');
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `flashcards-${currentCollection}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
   return (
     <div className={isDarkMode ? 'dark' : ''}>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
@@ -124,9 +105,9 @@ function App() {
           <ImportDialog
             onImport={(cards) => {
               if (currentCollection) {
-                // add default sr properties to imported cards
                 const cardsWithDefaults = cards.map(card => ({
-                  ...card,
+                  question: card.question || '',
+                  answer: card.answer || '',
                   lastReviewed: Date.now(),
                   nextReview: Date.now(),
                   interval: 0,
