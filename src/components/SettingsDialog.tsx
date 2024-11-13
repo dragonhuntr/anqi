@@ -10,7 +10,6 @@ interface SettingsDialogProps {
 export function SettingsDialog({ onClose }: SettingsDialogProps) {
   const [config, setConfig] = useState<ApiConfig>(getApiConfig());
   const [isSaving, setIsSaving] = useState(false);
-  const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
   const handleSave = async () => {
@@ -22,32 +21,6 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
     } catch (error) {
       setErrorMessage('Failed to save settings');
       setIsSaving(false);
-    }
-  };
-
-  const testConnection = async () => {
-    try {
-      setTestStatus('testing');
-      const response = await fetch(config.API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${config.API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: config.MODEL,
-          messages: [
-            { role: 'user', content: 'Test connection' }
-          ],
-        }),
-      });
-
-      if (!response.ok) throw new Error('Connection test failed');
-      
-      setTestStatus('success');
-    } catch (error) {
-      setTestStatus('error');
-      setErrorMessage('Connection test failed');
     }
   };
 
@@ -95,26 +68,16 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Model
             </label>
-            <input
-              type="text"
+            <select
               value={config.MODEL}
               onChange={(e) => setConfig({ ...config, MODEL: e.target.value })}
               className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              placeholder="gpt-3.5-turbo"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              System Prompt
-            </label>
-            <textarea
-              value={config.SYSTEM_PROMPT}
-              onChange={(e) => setConfig({ ...config, SYSTEM_PROMPT: e.target.value })}
-              className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              rows={3}
-              placeholder="You are a helpful AI assistant..."
-            />
+            >
+              <option value="Llama-Vision-Free">Llama-Vision-Free</option>
+              <option value="gpt-4-vision-preview">gpt-4-vision-preview</option>
+              <option value="gpt-4">gpt-4</option>
+              <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+            </select>
           </div>
 
           {errorMessage && (
@@ -122,14 +85,6 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
           )}
 
           <div className="flex justify-end gap-2 mt-6">
-            <button
-              onClick={testConnection}
-              disabled={isSaving || testStatus === 'testing'}
-              className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
-            >
-              {testStatus === 'testing' && <LoadingSpinner size="sm" />}
-              {testStatus === 'success' ? 'Connection OK' : 'Test Connection'}
-            </button>
             <button
               onClick={handleSave}
               disabled={isSaving}

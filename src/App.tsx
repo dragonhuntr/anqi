@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Moon, Sun } from 'lucide-react';
+import { Moon, Sun, Settings } from 'lucide-react';
 import { FlashCard } from './components/FlashCard';
 import { ImportDialog } from './components/ImportDialog';
 import { Stats } from './components/Stats';
@@ -7,6 +7,7 @@ import { CollectionManager } from './components/CollectionManager';
 import { CollectionDetails } from './components/CollectionDetails';
 import { useStore } from './store/useStore';
 import { Flashcard, FlashcardCollection, ViewMode } from './types';
+import { SettingsDialog } from './components/SettingsDialog';
 
 function App() {
   const {
@@ -23,6 +24,7 @@ function App() {
 
   const [showImport, setShowImport] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<ViewMode>(null);
+  const [showSettings, setShowSettings] = useState<boolean>(false);
 
   // get current collection's cards
   const currentCards: Flashcard[] = currentCollection
@@ -48,6 +50,12 @@ function App() {
               Anqi AI
             </h1>
             <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setShowSettings(true)}
+                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <Settings className="w-5 h-5 dark:text-white" />
+              </button>
               <button
                 onClick={toggleDarkMode}
                 className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -120,6 +128,10 @@ function App() {
             }}
             onClose={() => setShowImport(false)}
           />
+        )}
+
+        {showSettings && (
+          <SettingsDialog onClose={() => setShowSettings(false)} />
         )}
       </div>
     </div>

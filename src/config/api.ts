@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const ApiConfigSchema = z.object({
   API_URL: z.string().url(),
   API_KEY: z.string().min(1),
-  MODEL: z.string().default('gpt-3.5-turbo'),
+  MODEL: z.string().default('Llama-Vision-Free'),
   SYSTEM_PROMPT: z.string().default('You are a helpful AI assistant that creates flashcards. Generate clear, concise question-answer pairs.'),
   VISION_API_URL: z.string().url().optional(),
   VISION_API_KEY: z.string().optional(),
@@ -14,7 +14,7 @@ export type ApiConfig = z.infer<typeof ApiConfigSchema>;
 const defaultConfig: ApiConfig = {
   API_URL: '',
   API_KEY: '',
-  MODEL: 'gpt-3.5-turbo',
+  MODEL: 'Llama-Vision-Free',
   SYSTEM_PROMPT: 'You are a helpful AI assistant that creates flashcards. Generate clear, concise question-answer pairs.',
 };
 
