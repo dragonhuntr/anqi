@@ -17,6 +17,11 @@ export function CollectionDetails() {
   const collection = collections.find((c) => c.id === currentCollection);
   const currentCards = collection?.cards || [];
 
+  // if no collection selected, return early
+  if (!currentCollection || !collection) {
+    return null
+  }
+
   // calculate collection stats
   const stats = currentCards.reduce((acc, card) => ({
     totalCards: acc.totalCards + 1,

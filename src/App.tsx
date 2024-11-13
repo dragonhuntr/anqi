@@ -64,7 +64,7 @@ function App() {
         <header className="bg-white dark:bg-gray-800 shadow">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Flashcards
+              Anqi AI
             </h1>
             <div className="flex items-center space-x-4">
               <button
@@ -117,14 +117,6 @@ function App() {
                 </p>
               </div>
             )
-          )}
-          
-          {!viewMode && (
-            <div className="text-center py-12">
-              <p className="text-xl text-gray-600 dark:text-gray-300">
-                Select a collection and choose to edit or play.
-              </p>
-            </div>
           )}
         </main>
 

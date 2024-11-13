@@ -34,3 +34,7 @@ export interface CollectionFormData {
   name: string;
   topic: string;
 }
+
+export interface CollectionDetailsProps {
+  viewMode: ViewMode;
+}
