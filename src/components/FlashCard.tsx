@@ -127,7 +127,7 @@ export function FlashCard({
       <div className="mb-6">
         <div className="flex justify-between items-center mb-2">
           <span className="text-sm text-gray-500 dark:text-gray-400">
-            Card #{currentIndex + 1}
+            Progress
           </span>
           <button
             onClick={handleFullscreen}
@@ -272,11 +272,11 @@ export function FlashCard({
         <div className="text-center mt-6">
           <h3 className="text-xl font-semibold text-green-500 dark:text-green-400 mb-2">
             {masteredCount === totalCards
-              ? "all cards mastered! 🎉" 
-              : "keep practicing to master all cards! 💪"}
+              ? "all cards mastered! 🎉 🌟" 
+              : "keep practicing to master all cards! 💪 📚"}
           </h3>
           <p className="text-gray-600 dark:text-gray-300">
-            {masteredCount} out of {totalCards} cards mastered
+            {masteredCount} out of {totalCards} cards mastered!
           </p>
         </div>
       )}

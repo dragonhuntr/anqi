@@ -17,7 +17,7 @@ export function Stats({ stats }: StatsProps) {
           <Trophy className="w-6 h-6 text-blue-500 dark:text-blue-300" />
         </div>
         <div>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Current Streak</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Current Streak 🔥</p>
           <p className="text-xl font-semibold dark:text-white">{stats.streak} cards</p>
         </div>
       </div>

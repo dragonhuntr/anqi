@@ -35,18 +35,23 @@ function App() {
   };
 
   useEffect(() => {
-    if (currentCollection && collections.length > 0 && viewMode === 'play' && !isReplaying) {
+    if (currentCollection && collections.length > 0 && viewMode === 'play') {
       const currentCards = collections.find(
         (c: FlashcardCollection) => c.id === currentCollection
       )?.cards ?? [];
       
-      const newDueCards = shuffleCards(
-        currentCards.filter((card: Flashcard) => card.nextReview <= Date.now())
-      );
-      setDueCards(newDueCards);
+      // When replaying, use all cards regardless of due date
+      const cardsToUse = isReplaying 
+        ? currentCards 
+        : currentCards.filter((card: Flashcard) => card.nextReview <= Date.now());
+      
+      // Only shuffle if we're starting fresh or replaying
+      if (dueCards.length === 0 || isReplaying) {
+        setDueCards(shuffleCards(cardsToUse));
+      }
       
       // Reset currentCardIndex if it's out of bounds
-      if (currentCardIndex >= newDueCards.length) {
+      if (currentCardIndex >= cardsToUse.length) {
         useStore.setState({ currentCardIndex: 0 });
       }
     }
@@ -64,11 +69,24 @@ function App() {
     // Reset the card index
     useStore.setState({ currentCardIndex: 0 });
     
-    // Create a new shuffled array from all cards
+    // Create a new shuffled array from all cards with reset mastery
     const allCards = [...currentCards].map(card => ({
       ...card,
-      nextReview: Date.now() // Reset the review time to make all cards due
+      nextReview: Date.now(),
+      repetitions: 0, // reset mastery count
+      interval: 0,    // reset spaced repetition interval
+      easeFactor: 2.5 // reset ease factor to default
     }));
+    
+    // Update the collection with reset cards
+    if (currentCollection) {
+      const updatedCollection = collections.map(c => 
+        c.id === currentCollection 
+          ? { ...c, cards: allCards }
+          : c
+      );
+      useStore.setState({ collections: updatedCollection });
+    }
     
     setViewMode('play');
     setDueCards(shuffleCards(allCards));
@@ -134,17 +152,19 @@ function App() {
                 }}
                 onRate={(rating) => {
                   if (dueCards[currentCardIndex]) {
+                    // update card and stats
                     updateCard(currentCollection, dueCards[currentCardIndex].id, rating);
                     updateStats(rating >= 3);
                     
-                    const updatedCards = currentCards.map(card => 
-                      card.id === dueCards[currentCardIndex].id
-                        ? { ...card, repetitions: rating >= 3 ? card.repetitions + 1 : 0 }
-                        : card
-                    );
+                    // check if we should exit replay mode
+                    const isLastCard = currentCardIndex === dueCards.length - 1;
                     
-                    const allMastered = updatedCards.every(isCardMastered);
-                    if (allMastered || currentCardIndex === dueCards.length - 1) {
+                    // get updated card data after state update
+                    const updatedCards = collections.find(
+                      (c) => c.id === currentCollection
+                    )?.cards ?? [];
+                    
+                    if (isLastCard || updatedCards.every(isCardMastered)) {
                       setIsReplaying(false);
                     }
                   }
@@ -155,7 +175,7 @@ function App() {
             ) : (
               <div className="text-center py-12">
                 <p className="text-xl text-gray-600 dark:text-gray-300 mb-4">
-                  No cards due for review.
+                  No cards due for review. ❌
                   {currentCards.length === 0 && " Import some cards to get started!"}
                 </p>
                 {currentCards.length > 0 && (

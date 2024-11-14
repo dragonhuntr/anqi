@@ -213,7 +213,7 @@ export function ImportDialog({ onImport, onClose }: ImportDialogProps) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-lg w-full">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-4 pr-2">
           <h2 className="text-xl font-semibold dark:text-white">Import Cards</h2>
           <button
             onClick={onClose}
@@ -317,7 +317,7 @@ export function ImportDialog({ onImport, onClose }: ImportDialogProps) {
             <p className="text-sm text-gray-600 dark:text-gray-300">
               {isProcessing 
                 ? 'Processing files...' 
-                : 'Click to upload files or drag and drop'}
+                : 'Click to upload files or drag and drop 📄'}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Supported formats: CSV, TXT, PDF, PPTX, PNG, JPEG
