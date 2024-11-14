@@ -56,3 +56,7 @@ export function validateFile(file: File): ValidationResult {
     errors
   };
 }
+
+export function isCardMastered(card: Flashcard): boolean {
+  return card.repetitions > 0 && card.easeFactor >= 2.5;
+}

@@ -24,7 +24,7 @@ export async function generateQuestions(
   content: string | File,
   options: ProcessingOptions = {
     complexity: 'basic',
-    numQuestions: 5,
+    numQuestions: 20,
     contentType: 'text'
   }
 ): Promise<APIResponse<QuestionResponse>> {
@@ -35,21 +35,58 @@ export async function generateQuestions(
       throw new Error('API configuration is missing. Please check your settings.');
     }
 
-    const prompt = options.customPrompt ||
-      `Generate ${options.numQuestions} flashcard questions and answers from the following content at ${options.complexity} complexity level.
-     Format each QA pair exactly as: Q:[question]A:[answer]
-     Each pair should be on a single line.
-     For mathematical expressions, use LaTeX syntax with single $ for inline and double $$ for block equations.
-     Do not include any other text or formatting.
-     Example format:
-     Q:[What is the quadratic formula?]A:[For equation ax² + bx + c = 0, the solution is: $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$]of JavaScript]
-       Q:[What is JSX?]A:[A syntax extension for JavaScript that allows writing HTML-like code]`;
+    // handle image content
+    let imageUrl: string | undefined;
+    if (content instanceof File && content.type.startsWith('image/')) {
+      imageUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(content);
+      });
+    }
 
-    const messages = [
-      { role: 'system', content: config.SYSTEM_PROMPT },
-      { role: 'user', content: prompt },
-      { role: 'user', content: content instanceof File ? await content.text() : content }
-    ];
+    // create appropriate prompt based on content type
+    const basePrompt = imageUrl
+      ? `Generate ${options.numQuestions} flashcard questions and answers from the following image at ${options.complexity} complexity level.
+         Format each QA pair exactly as: [question number]Q:[question]A:[answer]
+         Each pair should be on a single line.
+         Include question numbers for each pair. Recount for every generation. If the total number of questions is less than ${options.numQuestions}, generate more questions.
+         For mathematical expressions and formulas, use LaTeX syntax with single $ for inline and double $$ for block equations.
+         Do not include any other text or formatting.
+         Do not include information outside of the content provided.
+         ${options.customPrompt ? `Ensure content is strictly focused on ${options.customPrompt} only.` : ''}
+         Example format:
+         Q:[What is the quadratic formula?]A:[For equation ax² + bx + c = 0, the solution is: $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$]
+         Q:[What is JSX?]A:[A syntax extension for JavaScript that allows writing HTML-like code]`
+      : `Generate ${options.numQuestions} flashcard questions and answers from the following content at ${options.complexity} complexity level.
+         Format each QA pair exactly as: [question number]Q:[question]A:[answer]
+         Each pair should be on a single line.
+         Include question numbers for each pair. Recount for every generation. If the total number of questions is less than ${options.numQuestions}, generate more questions.
+         For mathematical expressions and formulas, use LaTeX syntax with single $ for inline and double $$ for block equations.
+         Do not include any other text or formatting.
+         Do not include information outside of the content provided.
+         ${options.customPrompt ? `Ensure content is strictly focused on ${options.customPrompt} only.` : ''}
+         Example format:
+         Q:[What is the quadratic formula?]A:[For equation ax² + bx + c = 0, the solution is: $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$]
+         Q:[What is JSX?]A:[A syntax extension for JavaScript that allows writing HTML-like code]`;
+
+    // construct messages based on content type
+    const messages = imageUrl
+      ? [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: basePrompt },
+            { type: 'image_url', image_url: { url: imageUrl } },
+          ],
+        },
+      ]
+      : [
+        { role: 'system', content: config.SYSTEM_PROMPT },
+        { role: 'user', content: basePrompt },
+        { role: 'user', content: content instanceof File ? await content.text() : content }
+      ];
 
     const response = await fetch(config.API_URL, {
       method: 'POST',
@@ -60,8 +97,8 @@ export async function generateQuestions(
       body: JSON.stringify({
         model: config.MODEL,
         messages,
-        temperature: 0.7,
-        max_tokens: 2000,
+        temperature: 0.9,
+        max_tokens: 10000,
       }),
     });
 
@@ -119,75 +156,23 @@ export async function generateQuestions(
   }
 }
 
-export async function processImage(imageUrl: string): Promise<APIResponse<QuestionResponse>> {
-  try {
-    const config = getApiConfig();
-
-    if (!config.API_URL || !config.API_KEY) {
-      throw new Error('Vision API configuration is missing. Please check your settings.');
-    }
-
-    const response = await fetch(config.API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.API_KEY}`,
-      },
-      body: JSON.stringify({
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: 'Extract question-answer pairs from this image. Format as Q: [question] A: [answer]' },
-              {
-                type: 'image_url',
-                image_url: { url: imageUrl },
-              },
-            ],
-          },
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to process image');
-    }
-
-    const result = await response.json();
-    return { data: result };
-  } catch (error) {
-    logger.error('Image processing failed:', error);
-    return {
-      error: error instanceof Error ? error.message : 'Failed to process image'
-    };
-  }
-}
-
 export async function processContent(
   content: string | File,
   options?: Partial<ProcessingOptions>
 ): Promise<APIResponse<QuestionResponse>> {
   try {
-    if (content instanceof File && content.type.startsWith('image/')) {
-      const imageUrl = URL.createObjectURL(content);
-      const result = await processImage(imageUrl);
-      URL.revokeObjectURL(imageUrl);
-      return result;
-    }
-
     // update default options with user provided values
     const defaultOptions: ProcessingOptions = {
       complexity: 'basic',
-      numQuestions: 20, // updated default to match ui
-      contentType: 'text',
-      customPrompt: '', // add default empty prompt
+      numQuestions: 20,
+      contentType: content instanceof File && content.type.startsWith('image/') ? 'image' : 'text',
+      customPrompt: '',
     };
 
     // merge defaults with provided options
     const mergedOptions = {
       ...defaultOptions,
       ...options,
-      // ensure custom prompt is properly handled
       customPrompt: options?.customPrompt?.trim() || defaultOptions.customPrompt
     };
 
