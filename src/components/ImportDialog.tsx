@@ -210,163 +210,177 @@ export function ImportDialog({ onImport, onClose }: ImportDialogProps) {
     }
   };
 
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-lg w-full">
-        <div className="flex justify-between items-center mb-4 pr-2">
-          <h2 className="text-xl font-semibold dark:text-white">Import Cards</h2>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-          >
-            <X className="w-5 h-5 dark:text-white" />
-          </button>
-        </div>
-
-        <div className="mb-4 space-y-3 text-white">
-          <div>
-            <label className="block text-sm mb-1 dark:text-gray-300">complexity level</label>
-            <select
-              value={formOptions.complexity}
-              onChange={(e) => setFormOptions(prev => ({ 
-                ...prev, 
-                complexity: e.target.value as FormOptions['complexity']
-              }))}
-              className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-hidden"
+      onClick={handleBackdropClick}
+    >
+      <div className="relative w-full h-full sm:h-auto sm:max-h-[90vh] max-w-[95vw] sm:max-w-5xl m-0 sm:m-4">
+        <div className="absolute inset-0 sm:static bg-white dark:bg-gray-800 rounded-lg flex flex-col h-full">
+          {/* Header */}
+          <div className="flex justify-between items-center p-3 xs:p-4 sm:p-6 border-b dark:border-gray-700">
+            <h2 className="text-base xs:text-lg sm:text-xl font-semibold dark:text-white">import cards</h2>
+            <button
+              onClick={onClose}
+              className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              aria-label="Close dialog"
             >
-              <option value="basic">Basic</option>
-              <option value="intermediate">Intermediate</option>
-              <option value="expert">Expert</option>
-            </select>
+              <X className="w-4 h-4 xs:w-5 xs:h-5 dark:text-white" />
+            </button>
           </div>
 
-          <div>
-            <label className="block text-sm mb-1 dark:text-gray-300">focus area (optional)</label>
-            <input
-              type="text"
-              maxLength={100}
-              value={formOptions.focus}
-              onChange={(e) => setFormOptions(prev => ({ ...prev, focus: e.target.value }))}
-              placeholder="e.g., focus on key concepts"
-              className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm mb-1 dark:text-gray-300">number of questions</label>
-            <input
-              type="number"
-              min={1}
-              max={100}
-              value={formOptions.numQuestions}
-              onChange={(e) => setFormOptions(prev => ({ 
-                ...prev, 
-                numQuestions: Math.min(100, Math.max(1, parseInt(e.target.value) || 1))
-              }))}
-              className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 text-white"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm mb-1 dark:text-gray-300">paste content</label>
-            <textarea
-              value={formOptions.pastedContent}
-              onChange={(e) => setFormOptions(prev => ({ ...prev, pastedContent: e.target.value }))}
-              placeholder="paste your content here..."
-              rows={4}
-              className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
-            />
-          </div>
-
-          <button
-            onClick={handleProcessPasted}
-            disabled={isProcessing || !formOptions.pastedContent.trim()}
-            className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
-          >
-            {isProcessing ? 'Processing...' : 'Generate Cards'}
-          </button>
-        </div>
-
-        <div className="my-4 relative">
-          <hr className="border-gray-200 dark:border-gray-700" />
-          <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 px-2 text-sm text-gray-500">
-            OR
-          </span>
-        </div>
-
-        <div 
-          className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors
-            ${dragActive 
-              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30' 
-              : 'border-gray-300 dark:border-gray-600'}`}
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
-        >
-          <label className="cursor-pointer block">
-            <input
-              type="file"
-              accept=".csv,.txt,.pdf,.pptx,.png,.jpg,.jpeg"
-              onChange={(e) => handleFileUpload(e.target.files)}
-              multiple
-              className="hidden"
-              disabled={isProcessing}
-            />
-            <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              {isProcessing 
-                ? 'Processing files...' 
-                : 'Click to upload files or drag and drop 📄'}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Supported formats: CSV, TXT, PDF, PPTX, PNG, JPEG
-            </p>
-          </label>
-        </div>
-
-        {fileProgress.length > 0 && (
-          <div className="mt-4 space-y-2">
-            {fileProgress.map((fp, index) => (
-              <div key={index} className="bg-gray-50 dark:bg-gray-700 p-3 rounded">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm dark:text-white truncate">
-                    {fp.fileName}
-                  </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
-                    {fp.status === 'processing' && (
-                      <LoadingSpinner size="sm" className="mr-2" />
-                    )}
-                    {fp.status === 'processing' ? `${fp.progress}%` : fp.status}
-                  </span>
+          {/* Content - Scrollable */}
+          <div className="flex-1 overflow-y-auto p-3 xs:p-4 sm:p-6 pt-0">
+            <div className="grid grid-cols-1 sm:grid-cols-[300px_1fr] gap-4 sm:gap-6">
+              {/* File upload - Left on desktop, bottom on mobile */}
+              <div className="order-2 sm:order-1">
+                <div 
+                  className={`border-2 border-dashed rounded-lg p-3 xs:p-4 sm:p-6 text-center transition-colors h-full flex items-center justify-center
+                    ${dragActive 
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30' 
+                      : 'border-gray-300 dark:border-gray-600'}`}
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                >
+                  <label className="cursor-pointer block">
+                    <input type="file"
+                           accept=".csv,.txt,.pdf,.pptx,.png,.jpg,.jpeg"
+                           onChange={(e) => handleFileUpload(e.target.files)}
+                           multiple
+                           className="hidden"
+                           disabled={isProcessing} />
+                    <div className="flex flex-col items-center">
+                      <Upload className="w-8 h-8 sm:w-12 sm:h-12 text-black dark:text-white" />
+                      <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-3 mb-2">
+                        {isProcessing ? 'processing...' : 'tap to upload or drag files here'}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        csv, txt, pdf, pptx, png, jpeg
+                      </p>
+                    </div>
+                  </label>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
-                  <div
-                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                      fp.status === 'error' 
-                        ? 'bg-red-500' 
-                        : fp.status === 'complete'
-                        ? 'bg-green-500'
-                        : 'bg-blue-500'
-                    }`}
-                    style={{ width: `${fp.progress}%` }}
-                  />
-                </div>
-                {fp.error && (
-                  <p className="text-xs text-red-500 mt-1">{fp.error}</p>
+
+                {fileProgress.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    {fileProgress.map((fp, index) => (
+                      <div key={index} className="bg-gray-50 dark:bg-gray-700 p-2 xs:p-3 rounded text-xs xs:text-sm">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-sm dark:text-white truncate">
+                            {fp.fileName}
+                          </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
+                            {fp.status === 'processing' && (
+                              <LoadingSpinner size="sm" className="mr-2" />
+                            )}
+                            {fp.status === 'processing' ? `${fp.progress}%` : fp.status}
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
+                          <div
+                            className={`h-1.5 rounded-full transition-all duration-300 ${
+                              fp.status === 'error' 
+                                ? 'bg-red-500' 
+                                : fp.status === 'complete'
+                                ? 'bg-green-500'
+                                : 'bg-blue-500'
+                            }`}
+                            style={{ width: `${fp.progress}%` }}
+                          />
+                        </div>
+                        {fp.error && (
+                          <p className="text-xs text-red-500 mt-1">{fp.error}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-            ))}
-          </div>
-        )}
 
-        <div className="flex justify-end gap-2 mt-4">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-          >
-            Close
-          </button>
+              {/* Settings and paste content - Right on desktop, top on mobile */}
+              <div className="order-1 sm:order-2">
+                <div className="grid sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm mb-1 dark:text-gray-300">knowledge level</label>
+                    <select
+                      value={formOptions.complexity}
+                      onChange={(e) => setFormOptions(prev => ({ 
+                        ...prev, 
+                        complexity: e.target.value as FormOptions['complexity']
+                      }))}
+                      className="w-full h-10 px-3 text-sm border rounded dark:bg-gray-700 dark:border-gray-600 text-black dark:text-white"
+                    >
+                      <option value="basic">i dont know anything</option>
+                      <option value="intermediate">i know some basics</option>
+                      <option value="expert">i am quite familiar</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm mb-1 dark:text-gray-300">focus area (optional)</label>
+                    <input
+                      type="text"
+                      maxLength={100}
+                      value={formOptions.focus}
+                      onChange={(e) => setFormOptions(prev => ({ ...prev, focus: e.target.value }))}
+                      placeholder="e.g., key concepts"
+                      className="w-full h-10 px-3 text-sm border rounded dark:bg-gray-700 dark:border-gray-600 text-black dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm mb-1 dark:text-gray-300">number of cards</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={formOptions.numQuestions}
+                      onChange={(e) => setFormOptions(prev => ({ 
+                        ...prev, 
+                        numQuestions: Math.min(100, Math.max(1, parseInt(e.target.value) || 1))
+                      }))}
+                      className="w-full h-10 px-3 text-sm border rounded dark:bg-gray-700 dark:border-gray-600 text-black dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-2">
+                  <label className="block text-sm mb-1 dark:text-gray-300">paste content</label>
+                  <textarea
+                    value={formOptions.pastedContent}
+                    onChange={(e) => setFormOptions(prev => ({ ...prev, pastedContent: e.target.value }))}
+                    placeholder="paste your content here..."
+                    rows={8}
+                    className="w-full p-3 text-sm border rounded dark:bg-gray-700 dark:border-gray-600 text-black dark:text-white"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={onClose}
+                    className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                  >
+                    cancel
+                  </button>
+                  <button
+                    onClick={handleProcessPasted}
+                    disabled={isProcessing || !formOptions.pastedContent.trim()}
+                    className="px-4 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+                  >
+                    {isProcessing ? 'processing...' : 'generate cards'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

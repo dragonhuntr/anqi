@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Edit, Trash2, Plus } from 'lucide-react';
+import { Edit, Trash2, Plus, RotateCcw } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { ImportDialog } from './ImportDialog';
 
@@ -13,9 +13,13 @@ export function CollectionDetails() {
   const { collections, currentCollection, deleteCard, deleteAllCards, editCard, addCards } = useStore();
   const [editingCard, setEditingCard] = useState<EditingState | null>(null);
   const [showImport, setShowImport] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const collection = collections.find((c) => c.id === currentCollection);
   const currentCards = collection?.cards || [];
+  const isEmpty = currentCards.length === 0;
 
   // if no collection selected, return early
   if (!currentCollection || !collection) {
@@ -33,23 +37,52 @@ export function CollectionDetails() {
     ? Math.round((stats.correctAnswers / stats.timesTried) * 100)
     : 0;
 
+  const handleTrashClick = () => {
+    if (isEmpty) {
+      setIsShaking(true);
+      setTimeout(() => setIsShaking(false), 200);
+      return;
+    }
+    setShowDeleteConfirm(true);
+  };
+
+  const handleResetStats = () => {
+    if (currentCollection) {
+      const resetCards = currentCards.map(card => ({
+        ...card,
+        lastReviewed: Date.now(),
+        nextReview: Date.now(),
+        interval: 0,
+        easeFactor: 2.5,
+        repetitions: 0
+      }));
+      addCards(currentCollection, resetCards);
+      setShowResetConfirm(false);
+    }
+  };
+
   return (
     <div className="mt-8">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold dark:text-white">Collection Cards</h2>
         <div className="flex gap-2">
           <button
-            onClick={() => deleteAllCards(currentCollection)}
-            className="flex items-center gap-2 pr-4"
+            onClick={handleTrashClick}
+            className={`flex items-center gap-2 pr-4 ${isShaking ? 'animate-shake' : ''}`}
           >
             <Trash2 className="w-4 h-4 text-red-500" />
           </button>
           <button
-            onClick={() => setShowImport(true)}
-            className="flex items-center gap-2 px-2 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            onClick={() => setShowResetConfirm(true)}
+            className="flex items-center gap-2 pr-4"
           >
-            <Plus className="w-4 h-4" />
-            Import Cards
+            <RotateCcw className="w-4 h-4 text-yellow-500" />
+          </button>
+          <button
+            onClick={() => setShowImport(true)}
+            className="flex items-center gap-2 pr-4 text-blue-500"
+          >
+            <Plus className="w-6 h-6" />
           </button>
         </div>
       </div>
@@ -166,8 +199,8 @@ export function CollectionDetails() {
           onImport={(cards) => {
             if (currentCollection) {
               const cardsWithDefaults = cards.map(card => ({
-                question: card.question || '', // add fallback
-                answer: card.answer || '', // add fallback
+                question: card.question || '',
+                answer: card.answer || '',
                 lastReviewed: Date.now(),
                 nextReview: Date.now(),
                 interval: 0,
@@ -181,6 +214,57 @@ export function CollectionDetails() {
           onClose={() => setShowImport(false)}
         />
       )}
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full">
+            <h3 className="text-lg font-semibold mb-4 dark:text-white">delete all cards?</h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">this action cannot be undone</p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded"
+              >
+                cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (currentCollection) {
+                    deleteAllCards(currentCollection);
+                    setShowDeleteConfirm(false);
+                  }
+                }}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              >
+                delete all
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showResetConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full">
+            <h3 className="text-lg font-semibold mb-4 dark:text-white">reset collection stats?</h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">this will reset all progress while keeping your cards</p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded"
+              >
+                cancel
+              </button>
+              <button
+                onClick={handleResetStats}
+                className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+              >
+                reset stats
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-} 
+}
