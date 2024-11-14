@@ -73,7 +73,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
               onChange={(e) => setConfig({ ...config, MODEL: e.target.value })}
               className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             >
-              <option value="Llama-Vision-Free">Llama-Vision-Free</option>
+              <option value="meta-llama/Llama-Vision-Free">Llama-Vision-Free</option>
               <option value="gpt-4-vision-preview">gpt-4-vision-preview</option>
               <option value="gpt-4">gpt-4</option>
               <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>

@@ -13,6 +13,7 @@ import {
 import { validateFile } from '../utils/validation';
 import { logger } from '../utils/logger';
 import { LoadingSpinner } from './LoadingSpinner';
+import { processContent } from '../services/api';
 
 interface ImportDialogProps {
   onImport: (cards: Partial<Flashcard>[]) => void;
@@ -24,6 +25,13 @@ interface FileProgress {
   progress: number;
   status: 'processing' | 'complete' | 'error';
   error?: string;
+}
+
+interface FormOptions {
+  complexity: 'basic' | 'intermediate' | 'advanced';
+  focus: string;
+  numQuestions: number;
+  pastedContent: string;
 }
 
 const supportedTypes: Record<string, FileType> = {
@@ -39,6 +47,12 @@ export function ImportDialog({ onImport, onClose }: ImportDialogProps) {
   const [fileProgress, setFileProgress] = useState<FileProgress[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [formOptions, setFormOptions] = useState<FormOptions>({
+    complexity: 'basic',
+    focus: '',
+    numQuestions: 20,
+    pastedContent: ''
+  });
 
   const updateFileProgress = useCallback((
     index: number,
@@ -156,6 +170,46 @@ export function ImportDialog({ onImport, onClose }: ImportDialogProps) {
     handleFileUpload(e.dataTransfer.files);
   };
 
+  const handleProcessPasted = async () => {
+    if (!formOptions.pastedContent.trim()) return;
+
+    setIsProcessing(true);
+    try {
+      const result = await processContent(formOptions.pastedContent, {
+        complexity: formOptions.complexity,
+        numQuestions: formOptions.numQuestions,
+        customPrompt: formOptions.focus || undefined
+      });
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      if (result.data?.questions) {
+        const formattedCards = result.data.questions.map(qa => ({
+          question: qa.question,
+          answer: qa.answer,
+          lastReviewed: Date.now(),
+          nextReview: Date.now(),
+          interval: 0,
+          easeFactor: 2.5,
+          repetitions: 0
+        }));
+
+        onImport(formattedCards);
+        
+        logger.info(`successfully generated ${formattedCards.length} cards from pasted content`, {
+          complexity: formOptions.complexity,
+          numQuestions: formOptions.numQuestions
+        });
+      }
+    } catch (error) {
+      logger.error('failed to process pasted content:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-lg w-full">
@@ -167,6 +221,77 @@ export function ImportDialog({ onImport, onClose }: ImportDialogProps) {
           >
             <X className="w-5 h-5 dark:text-white" />
           </button>
+        </div>
+
+        <div className="mb-4 space-y-3 text-white">
+          <div>
+            <label className="block text-sm mb-1 dark:text-gray-300">complexity level</label>
+            <select
+              value={formOptions.complexity}
+              onChange={(e) => setFormOptions(prev => ({ 
+                ...prev, 
+                complexity: e.target.value as FormOptions['complexity']
+              }))}
+              className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+            >
+              <option value="basic">Basic</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="expert">Expert</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm mb-1 dark:text-gray-300">focus area (optional)</label>
+            <input
+              type="text"
+              maxLength={100}
+              value={formOptions.focus}
+              onChange={(e) => setFormOptions(prev => ({ ...prev, focus: e.target.value }))}
+              placeholder="e.g., focus on key concepts"
+              className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm mb-1 dark:text-gray-300">number of questions</label>
+            <input
+              type="number"
+              min={1}
+              max={100}
+              value={formOptions.numQuestions}
+              onChange={(e) => setFormOptions(prev => ({ 
+                ...prev, 
+                numQuestions: Math.min(100, Math.max(1, parseInt(e.target.value) || 1))
+              }))}
+              className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 text-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm mb-1 dark:text-gray-300">paste content</label>
+            <textarea
+              value={formOptions.pastedContent}
+              onChange={(e) => setFormOptions(prev => ({ ...prev, pastedContent: e.target.value }))}
+              placeholder="paste your content here..."
+              rows={4}
+              className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+            />
+          </div>
+
+          <button
+            onClick={handleProcessPasted}
+            disabled={isProcessing || !formOptions.pastedContent.trim()}
+            className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+          >
+            {isProcessing ? 'Processing...' : 'Generate Cards'}
+          </button>
+        </div>
+
+        <div className="my-4 relative">
+          <hr className="border-gray-200 dark:border-gray-700" />
+          <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 px-2 text-sm text-gray-500">
+            OR
+          </span>
         </div>
 
         <div 

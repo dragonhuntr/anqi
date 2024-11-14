@@ -30,12 +30,20 @@ export async function generateQuestions(
 ): Promise<APIResponse<QuestionResponse>> {
   try {
     const config = getApiConfig();
-    
+
     if (!config.API_URL || !config.API_KEY) {
       throw new Error('API configuration is missing. Please check your settings.');
     }
 
-    const prompt = options.customPrompt || `Generate ${options.numQuestions} flashcard questions and answers from the following content at ${options.complexity} complexity level. Format as Q: [question] A: [answer]`;
+    const prompt = options.customPrompt ||
+      `Generate ${options.numQuestions} flashcard questions and answers from the following content at ${options.complexity} complexity level.
+     Format each QA pair exactly as: Q:[question]A:[answer]
+     Each pair should be on a single line.
+     For mathematical expressions, use LaTeX syntax with single $ for inline and double $$ for block equations.
+     Do not include any other text or formatting.
+     Example format:
+     Q:[What is the quadratic formula?]A:[For equation ax² + bx + c = 0, the solution is: $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$]of JavaScript]
+       Q:[What is JSX?]A:[A syntax extension for JavaScript that allows writing HTML-like code]`;
 
     const messages = [
       { role: 'system', content: config.SYSTEM_PROMPT },
@@ -65,18 +73,40 @@ export async function generateQuestions(
     const aiResponse = rawResponse.choices[0].message.content;
 
     // Parse Q&A pairs from AI response
-    const pairs = aiResponse.split('\n')
-      .filter((line: string) => line.includes('Q:') && line.includes('A:'))
-      .map((line: string) => {
-        const [questionPart, answerPart] = line.split('A:');
-        const question = questionPart.replace('Q:', '').trim();
-        const answer = answerPart.trim();
-        return { question, answer };
-      });
+    const pairs = aiResponse
+      // first split into individual QA blocks
+      .split(/(?=Q:)/g)
+      .map((block: string) => {
+        // remove empty blocks and trim whitespace
+        block = block.trim();
+        if (!block) return null;
+
+        // extract question and answer using regex
+        const questionMatch = block.match(/Q:\s*\[?(.*?)\]?\s*(?=A:|$)/is);
+        const answerMatch = block.match(/A:\s*\[?(.*?)\]?\s*$/is);
+
+        if (!questionMatch?.[1] || !answerMatch?.[1]) return null;
+
+        return {
+          question: questionMatch[1].trim(),
+          answer: answerMatch[1].trim()
+        };
+      })
+      .filter((pair: { question: string; answer: string } | null): pair is { question: string; answer: string } =>
+        pair !== null &&
+        pair.question.length > 0 &&
+        pair.answer.length > 0
+      );
+
+    if (pairs.length === 0) {
+      logger.warn('no valid qa pairs found in response:', { aiResponse });
+      throw new Error('Failed to parse any valid question-answer pairs from response');
+    }
 
     logger.info('Questions generated successfully', {
       questionsCount: pairs.length,
-      options
+      options,
+      samplePair: pairs[0] // log first pair for debugging
     });
 
     return {
@@ -92,16 +122,16 @@ export async function generateQuestions(
 export async function processImage(imageUrl: string): Promise<APIResponse<QuestionResponse>> {
   try {
     const config = getApiConfig();
-    
-    if (!config.VISION_API_URL || !config.VISION_API_KEY) {
+
+    if (!config.API_URL || !config.API_KEY) {
       throw new Error('Vision API configuration is missing. Please check your settings.');
     }
 
-    const response = await fetch(config.VISION_API_URL, {
+    const response = await fetch(config.API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.VISION_API_KEY}`,
+        'Authorization': `Bearer ${config.API_KEY}`,
       },
       body: JSON.stringify({
         messages: [
@@ -144,17 +174,28 @@ export async function processContent(
       URL.revokeObjectURL(imageUrl);
       return result;
     }
-    
-    return generateQuestions(content, {
+
+    // update default options with user provided values
+    const defaultOptions: ProcessingOptions = {
       complexity: 'basic',
-      numQuestions: 5,
+      numQuestions: 20, // updated default to match ui
       contentType: 'text',
+      customPrompt: '', // add default empty prompt
+    };
+
+    // merge defaults with provided options
+    const mergedOptions = {
+      ...defaultOptions,
       ...options,
-    });
+      // ensure custom prompt is properly handled
+      customPrompt: options?.customPrompt?.trim() || defaultOptions.customPrompt
+    };
+
+    return generateQuestions(content, mergedOptions);
   } catch (error) {
-    logger.error('Content processing failed:', error);
+    logger.error('content processing failed:', error);
     return {
-      error: error instanceof Error ? error.message : 'Failed to process content'
+      error: error instanceof Error ? error.message : 'failed to process content'
     };
   }
 }
