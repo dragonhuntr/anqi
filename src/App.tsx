@@ -8,6 +8,7 @@ import { CollectionDetails } from './components/CollectionDetails';
 import { useStore } from './store/useStore';
 import { Flashcard, FlashcardCollection, ViewMode } from './types';
 import { SettingsDialog } from './components/SettingsDialog';
+import { isCardMastered } from './utils/validation';
 
 function App() {
   const {
@@ -43,10 +44,15 @@ function App() {
         currentCards.filter((card: Flashcard) => card.nextReview <= Date.now())
       );
       setDueCards(newDueCards);
+      
+      // Reset currentCardIndex if it's out of bounds
+      if (currentCardIndex >= newDueCards.length) {
+        useStore.setState({ currentCardIndex: 0 });
+      }
     }
   }, [currentCollection, collections, viewMode, isReplaying]);
 
-  // get current collection's cards - moved outside useEffect for render purposes
+  // Move currentCards declaration to the top with other state variables
   const currentCards: Flashcard[] = currentCollection
     ? collections.find((c: FlashcardCollection) => c.id === currentCollection)?.cards ?? []
     : [];
@@ -66,6 +72,10 @@ function App() {
     
     setViewMode('play');
     setDueCards(shuffleCards(allCards));
+  };
+
+  const getMasteredCount = (cards: Flashcard[]): number => {
+    return cards.filter(isCardMastered).length;
   };
 
   return (
@@ -106,10 +116,12 @@ function App() {
           {viewMode === 'play' && currentCollection && (
             dueCards.length > 0 ? (
               <FlashCard
-                question={dueCards[currentCardIndex].question}
-                answer={dueCards[currentCardIndex].answer}
+                question={dueCards[currentCardIndex]?.question || ''}
+                answer={dueCards[currentCardIndex]?.answer || ''}
                 currentIndex={currentCardIndex}
-                totalCards={dueCards.length}
+                totalCards={currentCards.length}
+                masteredCount={getMasteredCount(currentCards)}
+                currentCards={currentCards}
                 onNext={() => {
                   if (currentCardIndex < dueCards.length - 1) {
                     useStore.setState({ currentCardIndex: currentCardIndex + 1 });
@@ -121,13 +133,23 @@ function App() {
                   }
                 }}
                 onRate={(rating) => {
-                  updateCard(currentCollection, dueCards[currentCardIndex].id, rating);
-                  updateStats(rating >= 3);
-                  if (currentCardIndex === dueCards.length - 1) {
-                    setIsReplaying(false);
+                  if (dueCards[currentCardIndex]) {
+                    updateCard(currentCollection, dueCards[currentCardIndex].id, rating);
+                    updateStats(rating >= 3);
+                    
+                    const updatedCards = currentCards.map(card => 
+                      card.id === dueCards[currentCardIndex].id
+                        ? { ...card, repetitions: rating >= 3 ? card.repetitions + 1 : 0 }
+                        : card
+                    );
+                    
+                    const allMastered = updatedCards.every(isCardMastered);
+                    if (allMastered || currentCardIndex === dueCards.length - 1) {
+                      setIsReplaying(false);
+                    }
                   }
                 }}
-                isLastCard={currentCardIndex === dueCards.length - 1}
+                isLastCard={currentCardIndex === dueCards.length - 1 && currentCards.every(isCardMastered)}
                 onReplay={handleReplay}
               />
             ) : (

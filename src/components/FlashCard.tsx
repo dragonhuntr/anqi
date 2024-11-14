@@ -4,11 +4,19 @@ import { ChevronLeft, ChevronRight, RotateCcw, Maximize2, Minimize2 } from 'luci
 import { LatexRenderer } from './LatexRenderer';
 import Confetti from 'react-confetti';
 
+interface Flashcard {
+  id: string;
+  question: string;
+  answer: string;
+}
+
 interface FlashCardProps {
   question: string;
   answer: string;
   currentIndex: number;
   totalCards: number;
+  masteredCount: number;
+  currentCards: Flashcard[];
   onNext: () => void;
   onPrev: () => void;
   onRate: (rating: number) => void;
@@ -21,6 +29,7 @@ export function FlashCard({
   answer,
   currentIndex,
   totalCards,
+  masteredCount,
   onNext,
   onPrev,
   onRate,
@@ -64,9 +73,8 @@ export function FlashCard({
         if (isFlipped) setIsFlipped(false);
         onPrev();
       } else if (e.key >= '1' && e.key <= '5' && isFlipped) {
-        onRate(parseInt(e.key));
-        setIsFlipped(false);
-        onNext();
+        const rating = parseInt(e.key);
+        handleRating(rating);
       }
     };
 
@@ -99,10 +107,9 @@ export function FlashCard({
   const handleRating = async (rating: number) => {
     onRate(rating);
     setIsFlipped(false);
-    // delay next card load until flip animation starts
     setTimeout(() => {
       onNext();
-    }, 200); // small delay to ensure flip animation has started
+    }, 300); // small delay to ensure flip animation has started
   };
 
   return (
@@ -120,7 +127,7 @@ export function FlashCard({
       <div className="mb-6">
         <div className="flex justify-between items-center mb-2">
           <span className="text-sm text-gray-500 dark:text-gray-400">
-            Card {currentIndex + 1} of {totalCards}
+            Card #{currentIndex + 1}
           </span>
           <button
             onClick={handleFullscreen}
@@ -136,7 +143,7 @@ export function FlashCard({
         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
           <div
             className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${((currentIndex + 1) / totalCards) * 100}%` }}
+            style={{ width: `${(masteredCount / totalCards) * 100}%` }}
           />
         </div>
       </div>
@@ -264,10 +271,12 @@ export function FlashCard({
       {isComplete && (
         <div className="text-center mt-6">
           <h3 className="text-xl font-semibold text-green-500 dark:text-green-400 mb-2">
-            collection complete! 🎉
+            {masteredCount === totalCards
+              ? "all cards mastered! 🎉" 
+              : "keep practicing to master all cards! 💪"}
           </h3>
           <p className="text-gray-600 dark:text-gray-300">
-            great job! you've completed all the cards in this collection
+            {masteredCount} out of {totalCards} cards mastered
           </p>
         </div>
       )}

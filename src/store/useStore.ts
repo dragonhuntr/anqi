@@ -9,17 +9,18 @@ interface State {
   currentCardIndex: number;
   isDarkMode: boolean;
   stats: StudyStats;
-  
+
   // collection actions
   addCollection: (name: string, topic: string) => void;
   editCollection: (id: string, name: string, topic: string) => void;
   deleteCollection: (id: string) => void;
   setCurrentCollection: (id: string | null) => void;
-  
+
   // existing card actions
   addCards: (collectionId: string, cards: Omit<Flashcard, 'id'>[]) => void;
   updateCard: (collectionId: string, cardId: string, quality: number) => void;
   deleteCard: (collectionId: string, cardId: string) => void;
+  deleteAllCards: (collectionId: string) => void;
   toggleDarkMode: () => void;
   updateStats: (correct: boolean) => void;
   editCard: (collectionId: string, cardId: string, question: string, answer: string) => void;
@@ -71,20 +72,20 @@ export const useStore = create<State>()(
         collections: state.collections.map((collection) =>
           collection.id === collectionId
             ? {
-                ...collection,
-                cards: [
-                  ...collection.cards,
-                  ...newCards.map((card) => ({
-                    ...card,
-                    id: crypto.randomUUID(),
-                    lastReviewed: 0,
-                    nextReview: Date.now(),
-                    interval: 0,
-                    easeFactor: 2.5,
-                    repetitions: 0,
-                  })),
-                ],
-              }
+              ...collection,
+              cards: [
+                ...collection.cards,
+                ...newCards.map((card) => ({
+                  ...card,
+                  id: crypto.randomUUID(),
+                  lastReviewed: 0,
+                  nextReview: Date.now(),
+                  interval: 0,
+                  easeFactor: 2.5,
+                  repetitions: 0,
+                })),
+              ],
+            }
             : collection
         ),
       })),
@@ -103,20 +104,20 @@ export const useStore = create<State>()(
           collections: state.collections.map((c) =>
             c.id === collectionId
               ? {
-                  ...c,
-                  cards: c.cards.map((card) =>
-                    card.id === cardId
-                      ? {
-                          ...card,
-                          lastReviewed: Date.now(),
-                          nextReview: Date.now() + nextInterval * 24 * 60 * 60 * 1000,
-                          interval: nextInterval,
-                          easeFactor: newEaseFactor,
-                          repetitions: quality >= 3 ? card.repetitions + 1 : 0,
-                        }
-                      : card
-                  ),
-                }
+                ...c,
+                cards: c.cards.map((card) =>
+                  card.id === cardId
+                    ? {
+                      ...card,
+                      lastReviewed: Date.now(),
+                      nextReview: Date.now() + nextInterval * 24 * 60 * 60 * 1000,
+                      interval: nextInterval,
+                      easeFactor: newEaseFactor,
+                      repetitions: quality >= 3 ? card.repetitions + 1 : 0,
+                    }
+                    : card
+                ),
+              }
               : c
           ),
         };
@@ -128,9 +129,21 @@ export const useStore = create<State>()(
           collections: state.collections.map((c) =>
             c.id === collectionId
               ? {
-                  ...c,
-                  cards: c.cards.filter((c) => c.id !== cardId),
-                }
+                ...c,
+                cards: c.cards.filter((c) => c.id !== cardId),
+              }
+              : c
+          ),
+        })),
+
+      deleteAllCards: (collectionId) =>
+        set((state) => ({
+          collections: state.collections.map((c) =>
+            c.id === collectionId
+              ? {
+                ...c,
+                cards: [],
+              }
               : c
           ),
         })),
@@ -148,13 +161,13 @@ export const useStore = create<State>()(
         collections: state.collections.map((c) =>
           c.id === collectionId
             ? {
-                ...c,
-                cards: c.cards.map((card) =>
-                  card.id === cardId
-                    ? { ...card, question, answer }
-                    : card
-                ),
-              }
+              ...c,
+              cards: c.cards.map((card) =>
+                card.id === cardId
+                  ? { ...card, question, answer }
+                  : card
+              ),
+            }
             : c
         ),
       })),
