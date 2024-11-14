@@ -157,15 +157,16 @@ export function CollectionDetails() {
         <ImportDialog
           onImport={(cards) => {
             if (currentCollection) {
-              const completeCards = cards.map(card => ({
-                ...card,
-                lastReviewed: new Date().getTime(),
-                nextReview: new Date().getTime(),
+              const cardsWithDefaults = cards.map(card => ({
+                question: card.question || '', // add fallback
+                answer: card.answer || '', // add fallback
+                lastReviewed: Date.now(),
+                nextReview: Date.now(),
                 interval: 0,
                 easeFactor: 2.5,
                 repetitions: 0
               }));
-              addCards(currentCollection, completeCards);
+              addCards(currentCollection, cardsWithDefaults);
             }
             setShowImport(false);
           }}

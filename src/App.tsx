@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Moon, Sun } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Moon, Sun, Settings } from 'lucide-react';
 import { FlashCard } from './components/FlashCard';
 import { ImportDialog } from './components/ImportDialog';
 import { Stats } from './components/Stats';
@@ -7,6 +7,7 @@ import { CollectionManager } from './components/CollectionManager';
 import { CollectionDetails } from './components/CollectionDetails';
 import { useStore } from './store/useStore';
 import { Flashcard, FlashcardCollection, ViewMode } from './types';
+import { SettingsDialog } from './components/SettingsDialog';
 
 function App() {
   const {
@@ -23,39 +24,48 @@ function App() {
 
   const [showImport, setShowImport] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<ViewMode>(null);
-
-  // get current collection's cards
-  const currentCards: Flashcard[] = currentCollection
-    ? collections.find((c: FlashcardCollection) => c.id === currentCollection)?.cards ?? []
-    : [];
+  const [showSettings, setShowSettings] = useState<boolean>(false);
+  const [dueCards, setDueCards] = useState<Flashcard[]>([]);
+  const [isReplaying, setIsReplaying] = useState<boolean>(false);
 
   // shuffle cards
   const shuffleCards = (cards: Flashcard[]): Flashcard[] => {
     return [...cards].sort(() => Math.random() - 0.5);
   };
 
-  // filter cards due for review
-  const dueCards: Flashcard[] = shuffleCards(
-    currentCards.filter((card: Flashcard) => card.nextReview <= Date.now())
-  );
+  useEffect(() => {
+    if (currentCollection && collections.length > 0 && viewMode === 'play' && !isReplaying) {
+      const currentCards = collections.find(
+        (c: FlashcardCollection) => c.id === currentCollection
+      )?.cards ?? [];
+      
+      const newDueCards = shuffleCards(
+        currentCards.filter((card: Flashcard) => card.nextReview <= Date.now())
+      );
+      setDueCards(newDueCards);
+    }
+  }, [currentCollection, collections, viewMode, isReplaying]);
 
-  const handleExport = () => {
-    if (!currentCollection) return;
+  // get current collection's cards - moved outside useEffect for render purposes
+  const currentCards: Flashcard[] = currentCollection
+    ? collections.find((c: FlashcardCollection) => c.id === currentCollection)?.cards ?? []
+    : [];
+
+  const handleReplay = () => {
+    // Set replay mode
+    setIsReplaying(true);
     
-    const csv = currentCards
-      .map(({ question, answer }: Flashcard) => 
-        `${question},${answer}`)
-      .join('\n');
+    // Reset the card index
+    useStore.setState({ currentCardIndex: 0 });
     
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `flashcards-${currentCollection}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Create a new shuffled array from all cards
+    const allCards = [...currentCards].map(card => ({
+      ...card,
+      nextReview: Date.now() // Reset the review time to make all cards due
+    }));
+    
+    setViewMode('play');
+    setDueCards(shuffleCards(allCards));
   };
 
   return (
@@ -67,6 +77,12 @@ function App() {
               Anqi AI
             </h1>
             <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setShowSettings(true)}
+                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <Settings className="w-5 h-5 dark:text-white" />
+              </button>
               <button
                 onClick={toggleDarkMode}
                 className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -107,14 +123,39 @@ function App() {
                 onRate={(rating) => {
                   updateCard(currentCollection, dueCards[currentCardIndex].id, rating);
                   updateStats(rating >= 3);
+                  if (currentCardIndex === dueCards.length - 1) {
+                    setIsReplaying(false);
+                  }
                 }}
+                isLastCard={currentCardIndex === dueCards.length - 1}
+                onReplay={handleReplay}
               />
             ) : (
               <div className="text-center py-12">
-                <p className="text-xl text-gray-600 dark:text-gray-300">
+                <p className="text-xl text-gray-600 dark:text-gray-300 mb-4">
                   No cards due for review.
                   {currentCards.length === 0 && " Import some cards to get started!"}
                 </p>
+                {currentCards.length > 0 && (
+                  <button
+                    onClick={handleReplay}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-2 mx-auto"
+                  >
+                    <svg 
+                      className="w-5 h-5" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path 
+                        strokeLinecap="round"
+                        strokeWidth={2} 
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" 
+                      />
+                    </svg>
+                    Replay Collection
+                  </button>
+                )}
               </div>
             )
           )}
@@ -124,9 +165,9 @@ function App() {
           <ImportDialog
             onImport={(cards) => {
               if (currentCollection) {
-                // add default sr properties to imported cards
                 const cardsWithDefaults = cards.map(card => ({
-                  ...card,
+                  question: card.question || '',
+                  answer: card.answer || '',
                   lastReviewed: Date.now(),
                   nextReview: Date.now(),
                   interval: 0,
@@ -139,6 +180,10 @@ function App() {
             }}
             onClose={() => setShowImport(false)}
           />
+        )}
+
+        {showSettings && (
+          <SettingsDialog onClose={() => setShowSettings(false)} />
         )}
       </div>
     </div>
