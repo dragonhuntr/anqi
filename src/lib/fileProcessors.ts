@@ -1,158 +1,113 @@
 import Papa from 'papaparse';
-import * as pdfjs from 'pdfjs-dist';
-import { processContent } from '../services/api';
+import { generateQuestions } from '../services/api';
 import { logger } from '../utils/logger';
-
-// set pdf.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+import type { ProcessingOptions } from '../types';
+import type { APIResponse, QuestionResponse } from '../services/api';
+import { pdf } from 'pdf-to-img';
 
 export interface ProcessedContent {
   content: string;
   error?: string;
 }
 
-// helper to read file as text
-export const readFileAsText = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
+// helper to read file as text with proper error handling
+export const readFileAsText = async (file: File): Promise<string> => {
+  try {
     const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target?.result as string);
-    reader.onerror = (e) => reject(e);
-    reader.readAsText(file);
-  });
+    return new Promise((resolve, reject) => {
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('failed to read file'));
+      reader.readAsText(file);
+    });
+  } catch (err) {
+    logger.error('file read failed:', err);
+    throw new Error('failed to read file');
+  }
 };
 
-// helper to read file as array buffer
-export const readFileAsArrayBuffer = (file: File): Promise<ArrayBuffer> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target?.result as ArrayBuffer);
-    reader.onerror = (e) => reject(e);
-    reader.readAsArrayBuffer(file);
-  });
-};
+// convert api response to processed content with null checks
+const convertAPIResponse = (response: APIResponse<QuestionResponse>): ProcessedContent => ({
+  content: response.data?.questions?.reduce((acc, qa) => 
+    qa?.question && qa?.answer ? `${acc}${qa.question},${qa.answer}\n` : acc, 
+  '').trim() || '',
+  error: response.error
+});
 
-// process csv content
+// process csv content with better validation
 export const processCSVContent = async (content: string): Promise<ProcessedContent> => {
   try {
-    const result = Papa.parse(content, {
-      skipEmptyLines: true,
+    const { data, errors } = Papa.parse<string[]>(content, {
+      skipEmptyLines: 'greedy',
       delimiter: ',',
+      transform: (value) => value.trim()
     });
 
-    if (result.errors.length > 0) {
-      throw new Error('CSV parsing error');
-    }
+    if (errors.length) throw new Error(errors[0].message);
 
-    const formattedContent = (result.data as string[][])
-      .filter(row => row.length >= 2 && row[0] && row[1])
-      .map(row => `${row[0].toString().trim()},${row[1].toString().trim()}`)
-      .join('\n');
+    const validRows = data.filter(row => row.length >= 2 && row[0] && row[1])
+      .map(([q, a]) => `${q},${a}`).join('\n');
 
-    if (!formattedContent) {
-      return { content: '', error: 'No valid question-answer pairs found' };
-    }
+    if (!validRows) return { content: '', error: 'no valid qa pairs found' };
 
-    const apiResponse = await processContent(formattedContent);
-    if (apiResponse.error) {
-      return { content: '', error: apiResponse.error };
-    }
-
-    return { 
-      content: apiResponse.data?.questions
-        .map(qa => `${qa.question},${qa.answer}`)
-        .join('\n') || '' 
-    };
+    return convertAPIResponse(await generateQuestions(validRows, { contentType: 'text' }));
   } catch (err) {
-    logger.error('CSV processing failed:', err);
-    return { content: '', error: 'Failed to process CSV content' };
+    logger.error('csv processing failed:', err);
+    return { content: '', error: 'failed to process csv' };
   }
 };
 
-// extract pdf content
-export const extractPDFContent = async (file: File): Promise<ProcessedContent> => {
+// convert pdf to base64 with in-memory processing
+const convertPDFToBase64 = async (file: File | Buffer): Promise<string> => {
   try {
-    const buffer = await readFileAsArrayBuffer(file);
-    const pdf = await pdfjs.getDocument(buffer).promise;
+    // convert directly using pdf-to-img library
+    const buffer = Buffer.isBuffer(file) ? file : Buffer.from(await file.arrayBuffer());
+    const document = await pdf(buffer);
+    const image = await document.getPage(1);
+    return image.toString('base64');
+  } catch (err) {
+    logger.error('pdf conversion failed:', err);
+    throw new Error('failed to convert pdf to image');
+  }
+};
+
+// streamlined file processing with type guards
+export const processFileContent = async (
+  file: File,
+  options?: Partial<ProcessingOptions>
+): Promise<ProcessedContent> => {
+  if (file.size > 5 * 1024 * 1024) {
+    return { content: '', error: 'file too large (max 5mb)' };
+  }
+
+  try {
+    const fileType = file.type.toLowerCase();
     
-    let fullText = '';
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      const text = content.items
-        .map((item: any) => item.str)
-        .join(' ');
-      fullText += text + '\n';
+    if (fileType === 'text/csv') {
+      return processCSVContent(await readFileAsText(file));
+    }
+    
+    if (fileType === 'application/pdf') {
+      const base64 = await convertPDFToBase64(file);
+      return convertAPIResponse(
+        await generateQuestions(base64, { ...options, contentType: 'image' })
+      );
+    }
+    
+    if (fileType.startsWith('image/')) {
+      return convertAPIResponse(
+        await generateQuestions(file, { ...options, contentType: 'image' })
+      );
     }
 
-    const apiResponse = await processContent(fullText);
-    if (apiResponse.error) {
-      return { content: '', error: apiResponse.error };
-    }
-
-    return { 
-      content: apiResponse.data?.questions
-        .map(qa => `${qa.question},${qa.answer}`)
-        .join('\n') || '' 
-    };
+    // fallback for text files
+    return convertAPIResponse(
+      await generateQuestions(
+        await readFileAsText(file), 
+        { ...options, contentType: 'text' }
+      )
+    );
   } catch (err) {
-    logger.error('PDF processing failed:', err);
-    return { content: '', error: 'Failed to process PDF file' };
-  }
-};
-
-// extract pptx content
-export const extractPPTXContent = async (file: File): Promise<ProcessedContent> => {
-  try {
-    const apiResponse = await processContent(file);
-    if (apiResponse.error) {
-      return { content: '', error: apiResponse.error };
-    }
-
-    return { 
-      content: apiResponse.data?.questions
-        .map(qa => `${qa.question},${qa.answer}`)
-        .join('\n') || '' 
-    };
-  } catch (err) {
-    logger.error('PPTX processing failed:', err);
-    return { content: '', error: 'Failed to process PPTX file' };
-  }
-};
-
-// perform ocr on images
-export const performVisionOCR = async (file: File): Promise<ProcessedContent> => {
-  try {
-    const apiResponse = await processContent(file, { contentType: 'image' });
-    if (apiResponse.error) {
-      return { content: '', error: apiResponse.error };
-    }
-
-    return { 
-      content: apiResponse.data?.questions
-        .map(qa => `${qa.question},${qa.answer}`)
-        .join('\n') || '' 
-    };
-  } catch (err) {
-    logger.error('Image processing failed:', err);
-    return { content: '', error: 'Failed to process image file' };
-  }
-};
-
-// process text content
-export const processTextContent = async (content: string): Promise<ProcessedContent> => {
-  try {
-    const apiResponse = await processContent(content);
-    if (apiResponse.error) {
-      return { content: '', error: apiResponse.error };
-    }
-
-    return { 
-      content: apiResponse.data?.questions
-        .map(qa => `${qa.question},${qa.answer}`)
-        .join('\n') || '' 
-    };
-  } catch (err) {
-    logger.error('Text processing failed:', err);
-    return { content: '', error: 'Failed to process text content' };
+    logger.error(`processing failed for ${file.type}:`, err);
+    return { content: '', error: `failed to process ${file.type} file` };
   }
 };

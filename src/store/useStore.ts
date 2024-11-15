@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { Flashcard, StudyStats, FlashcardCollection } from '../types';
 import { calculateNextReview } from '../lib/spaced-repetition';
+import { DEFAULT_CARD_STATS } from '../constants/defaults';
 
 interface State {
   collections: FlashcardCollection[];
@@ -80,11 +81,7 @@ export const useStore = create<State>()(
                 ...newCards.map((card) => ({
                   ...card,
                   id: crypto.randomUUID(),
-                  lastReviewed: 0,
-                  nextReview: Date.now(),
-                  interval: 0,
-                  easeFactor: 2.5,
-                  repetitions: 0,
+                  ...DEFAULT_CARD_STATS
                 })),
               ],
             }
@@ -182,11 +179,7 @@ export const useStore = create<State>()(
                   ...collection,
                   cards: collection.cards.map(card => ({
                     ...card,
-                    lastReviewed: Date.now(),
-                    nextReview: Date.now(),
-                    interval: 0,
-                    easeFactor: 2.5,
-                    repetitions: 0
+                    ...DEFAULT_CARD_STATS
                   }))
                 }
               : collection

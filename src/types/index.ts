@@ -57,3 +57,8 @@ export interface ProcessingResult<T> {
   error?: APIError;
   loading?: boolean;
 }
+
+export interface ProcessingOptions extends GenerationOptions {
+  contentType: 'text' | 'image';
+  customPrompt?: string;
+}
