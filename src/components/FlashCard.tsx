@@ -5,13 +5,13 @@ import { LatexRenderer } from './LatexRenderer';
 import Confetti from 'react-confetti';
 import { useStore } from '../store/useStore';
 import { isCardMastered } from '../utils/validation';
-import { ViewMode, Flashcard } from '../types';
+import { Flashcard } from '../types';
+import { useNavigate } from 'react-router-dom';
 
-interface FlashCardProps {
-  onViewModeChange: (mode: ViewMode) => void;
-}
+interface FlashCardProps {}
 
-export function FlashCard({ onViewModeChange }: FlashCardProps) {
+export const FlashCard: React.FC<FlashCardProps> = () => {
+  const navigate = useNavigate();
   const [isFlipped, setIsFlipped] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [showConfetti, setShowConfetti] = useState<boolean>(false);
@@ -133,9 +133,9 @@ export function FlashCard({ onViewModeChange }: FlashCardProps) {
         c.id === currentCollection ? { ...c, cards: allCards } : c
       );
       useStore.setState({ collections: updatedCollection });
+      navigate(`/${currentCollection}/play`);
     }
     
-    onViewModeChange('play');
     setDueCards(shuffleCards(allCards));
   };
 

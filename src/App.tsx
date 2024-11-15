@@ -1,26 +1,32 @@
-import { useState } from 'react';
+import { Outlet, useNavigate, useParams } from 'react-router-dom';
 import { Moon, Sun, Settings } from 'lucide-react';
-import { FlashCard } from './components/FlashCard';
-import { ImportDialog } from './components/ImportDialog';
 import { Stats } from './components/Stats';
 import { CollectionManager } from './components/CollectionManager';
-import { CollectionDetails } from './components/CollectionDetails';
 import { useStore } from './store/useStore';
-import { ViewMode } from './types';
 import { SettingsDialog } from './components/SettingsDialog';
+import { useEffect, useState } from 'react';
 
 function App() {
-  const { isDarkMode, toggleDarkMode, stats, currentCollection } = useStore();
-  const [showImport, setShowImport] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<ViewMode>(null);
+  const { isDarkMode, toggleDarkMode, stats, setCurrentCollection } = useStore();
   const [showSettings, setShowSettings] = useState<boolean>(false);
+  const { collectionId } = useParams();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (collectionId) {
+      setCurrentCollection(collectionId);
+    }
+  }, [collectionId]);
 
   return (
     <div className={isDarkMode ? 'dark' : ''}>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
         <header className="bg-white dark:bg-gray-800 shadow">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <h1 
+              onClick={() => navigate('/')}
+              className="text-2xl font-bold text-gray-900 dark:text-white cursor-pointer"
+            >
               Anqi AI
             </h1>
             <div className="flex items-center space-x-4">
@@ -46,20 +52,9 @@ function App() {
 
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Stats stats={stats} />
-          <CollectionManager onViewModeChange={setViewMode} />
-          
-          {viewMode === 'edit' && <CollectionDetails />}
-          {viewMode === 'play' && currentCollection && (
-            <FlashCard onViewModeChange={setViewMode} />
-          )}
+          <CollectionManager />
+          <Outlet />
         </main>
-
-        {showImport && (
-          <ImportDialog
-            onImport={() => setShowImport(false)}
-            onClose={() => setShowImport(false)}
-          />
-        )}
 
         {showSettings && (
           <SettingsDialog onClose={() => setShowSettings(false)} />

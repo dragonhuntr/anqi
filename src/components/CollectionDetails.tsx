@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Edit, Trash2, Plus, RotateCcw } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { ImportDialog } from './ImportDialog';
+import { useParams, useNavigate } from 'react-router-dom';
 
 interface EditingState {
   id: string;
@@ -10,21 +11,30 @@ interface EditingState {
 }
 
 export function CollectionDetails() {
-  const { collections, currentCollection, deleteCard, deleteAllCards, editCard, addCards } = useStore();
+  const { collections, currentCollection, deleteCard, deleteAllCards, editCard, addCards, setCurrentCollection } = useStore();
   const [editingCard, setEditingCard] = useState<EditingState | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const { collectionId } = useParams();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (collectionId) {
+      setCurrentCollection(collectionId);
+    }
+  }, [collectionId]);
+
+  // if no collection selected, redirect to home
+  if (!currentCollection || !collections.find(c => c.id === currentCollection)) {
+    navigate('/');
+    return null;
+  }
 
   const collection = collections.find((c) => c.id === currentCollection);
   const currentCards = collection?.cards || [];
   const isEmpty = currentCards.length === 0;
-
-  // if no collection selected, return early
-  if (!currentCollection || !collection) {
-    return null
-  }
 
   // calculate collection stats
   const stats = currentCards.reduce((acc, card) => ({

@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Folder, Trash2, Plus, Play, Edit } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { ConfirmDialog } from './ConfirmDialog';
-import { FlashcardCollection, CollectionManagerProps, CollectionFormData, ViewMode } from '../types';
+import { FlashcardCollection, CollectionFormData, ViewMode } from '../types';
+import { useNavigate } from 'react-router-dom';
 
-export function CollectionManager({ onViewModeChange }: CollectionManagerProps) {
+export function CollectionManager() {
     const [isAdding, setIsAdding] = useState<boolean>(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [formData, setFormData] = useState<CollectionFormData>({
@@ -22,9 +23,11 @@ export function CollectionManager({ onViewModeChange }: CollectionManagerProps) 
         setCurrentCollection,
     } = useStore();
 
+    const navigate = useNavigate();
+
     const handleViewModeChange = (mode: ViewMode, collectionId: string) => {
         setCurrentCollection(collectionId);
-        onViewModeChange(mode);
+        navigate(`/${collectionId}/${mode}`);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -43,12 +46,12 @@ export function CollectionManager({ onViewModeChange }: CollectionManagerProps) 
     };
 
     const handleCollectionClick = (collection: FlashcardCollection) => {
-        // if already selected, deselect
         if (currentCollection === collection.id) {
             setCurrentCollection(null);
+            navigate('/');
         } else {
             setCurrentCollection(collection.id);
-            onViewModeChange('edit');
+            navigate(`/${collection.id}`);
         }
     };
 

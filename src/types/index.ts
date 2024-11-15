@@ -27,7 +27,6 @@ export interface FlashcardCollection {
 export type ViewMode = 'edit' | 'play' | null;
 
 export interface CollectionManagerProps {
-  onViewModeChange: (mode: ViewMode) => void;
 }
 
 export interface CollectionFormData {
