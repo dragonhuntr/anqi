@@ -24,6 +24,8 @@ interface State {
   toggleDarkMode: () => void;
   updateStats: (correct: boolean) => void;
   editCard: (collectionId: string, cardId: string, question: string, answer: string) => void;
+
+  resetCollectionStats: (collectionId: string) => void;
 }
 
 export const useStore = create<State>()(
@@ -171,6 +173,26 @@ export const useStore = create<State>()(
             : c
         ),
       })),
+
+      resetCollectionStats: (collectionId) => {
+        set(state => ({
+          collections: state.collections.map(collection => 
+            collection.id === collectionId 
+              ? {
+                  ...collection,
+                  cards: collection.cards.map(card => ({
+                    ...card,
+                    lastReviewed: Date.now(),
+                    nextReview: Date.now(),
+                    interval: 0,
+                    easeFactor: 2.5,
+                    repetitions: 0
+                  }))
+                }
+              : collection
+          )
+        }))
+      },
     }),
     {
       name: 'flashcards-storage',

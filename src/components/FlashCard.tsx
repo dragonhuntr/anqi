@@ -133,7 +133,7 @@ export const FlashCard: React.FC<FlashCardProps> = () => {
         c.id === currentCollection ? { ...c, cards: allCards } : c
       );
       useStore.setState({ collections: updatedCollection });
-      navigate(`/${currentCollection}/play`);
+      navigate(`/collection/${currentCollection}/play`);
     }
     
     setDueCards(shuffleCards(allCards));

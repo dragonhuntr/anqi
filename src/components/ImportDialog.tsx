@@ -30,7 +30,7 @@ interface FileProgress {
 interface FormOptions {
   complexity: 'basic' | 'intermediate' | 'advanced';
   focus: string;
-  numQuestions: number;
+  numQuestions: string;
   pastedContent: string;
 }
 
@@ -50,7 +50,7 @@ export function ImportDialog({ onImport, onClose }: ImportDialogProps) {
   const [formOptions, setFormOptions] = useState<FormOptions>({
     complexity: 'basic',
     focus: '',
-    numQuestions: 20,
+    numQuestions: '20',
     pastedContent: ''
   });
 
@@ -177,7 +177,7 @@ export function ImportDialog({ onImport, onClose }: ImportDialogProps) {
     try {
       const result = await processContent(formOptions.pastedContent, {
         complexity: formOptions.complexity,
-        numQuestions: formOptions.numQuestions,
+        numQuestions: Math.min(100, Math.max(1, parseInt(formOptions.numQuestions) || 20)),
         customPrompt: formOptions.focus || undefined
       });
 
@@ -244,11 +244,12 @@ export function ImportDialog({ onImport, onClose }: ImportDialogProps) {
                   className={`border-2 border-dashed rounded-lg p-3 xs:p-4 sm:p-6 text-center transition-colors h-full flex items-center justify-center
                     ${dragActive 
                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30' 
-                      : 'border-gray-300 dark:border-gray-600'}`}
-                  onDragEnter={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDragOver={handleDrag}
-                  onDrop={handleDrop}
+                      : 'border-gray-300 dark:border-gray-600'}
+                    ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  onDragEnter={isProcessing ? undefined : handleDrag}
+                  onDragLeave={isProcessing ? undefined : handleDrag}
+                  onDragOver={isProcessing ? undefined : handleDrag}
+                  onDrop={isProcessing ? undefined : handleDrop}
                 >
                   <label className="cursor-pointer block">
                     <input type="file"
@@ -345,7 +346,7 @@ export function ImportDialog({ onImport, onClose }: ImportDialogProps) {
                       value={formOptions.numQuestions}
                       onChange={(e) => setFormOptions(prev => ({ 
                         ...prev, 
-                        numQuestions: Math.min(100, Math.max(1, parseInt(e.target.value) || 1))
+                        numQuestions: e.target.value
                       }))}
                       className="w-full h-10 px-3 text-sm border rounded dark:bg-gray-700 dark:border-gray-600 text-black dark:text-white"
                     />
@@ -359,7 +360,9 @@ export function ImportDialog({ onImport, onClose }: ImportDialogProps) {
                     onChange={(e) => setFormOptions(prev => ({ ...prev, pastedContent: e.target.value }))}
                     placeholder="paste your content here..."
                     rows={8}
-                    className="w-full p-3 text-sm border rounded dark:bg-gray-700 dark:border-gray-600 text-black dark:text-white"
+                    disabled={isProcessing}
+                    className={`w-full p-3 text-sm border rounded dark:bg-gray-700 dark:border-gray-600 text-black dark:text-white
+                      ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
                   />
                 </div>
 

@@ -10,13 +10,13 @@ export const router = createBrowserRouter([
     element: <App />,
     children: [
       {
-        path: ':collectionId',
+        path: 'collection/:collectionId',
         element: <CollectionDetails />
       }
     ]
   },
   {
-    path: ':collectionId/play',
+    path: 'collection/:collectionId/play',
     element: <PlayLayout />,
     children: [
       {

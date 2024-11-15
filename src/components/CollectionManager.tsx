@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Folder, Trash2, Plus, Play, Edit } from 'lucide-react';
+import { Group, Trash2, Plus, Play, Edit } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { ConfirmDialog } from './ConfirmDialog';
 import { FlashcardCollection, CollectionFormData, ViewMode } from '../types';
@@ -27,7 +27,9 @@ export function CollectionManager() {
 
     const handleViewModeChange = (mode: ViewMode, collectionId: string) => {
         setCurrentCollection(collectionId);
-        navigate(`/${collectionId}/${mode}`);
+        if (mode === 'play') {
+            navigate(`/collection/${collectionId}/play`);
+        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -51,7 +53,7 @@ export function CollectionManager() {
             navigate('/');
         } else {
             setCurrentCollection(collection.id);
-            navigate(`/${collection.id}`);
+            navigate(`/collection/${collection.id}`);
         }
     };
 
@@ -85,7 +87,7 @@ export function CollectionManager() {
             />
 
             <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold dark:text-white">Collections</h2>
+                <h2 className="text-xl font-semibold dark:text-white">collections</h2>
                 <div className="flex gap-2">
                     <button
                         onClick={() => setIsAdding(true)}
@@ -147,7 +149,7 @@ export function CollectionManager() {
                             ) : (
                                 <div className="flex justify-between items-center w-full">
                                     <div className="flex items-center space-x-3">
-                                        <Folder className="w-5 h-5 text-blue-500" />
+                                        <Group className="w-5 h-5 text-blue-500" />
                                         <div>
                                             <p className="font-medium dark:text-white">
                                                 <span className="text-gray-500 mr-2">#{index + 1}</span>

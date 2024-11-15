@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Edit, Trash2, Plus, RotateCcw } from 'lucide-react';
+import { Edit, Trash2, Plus, RotateCcw, PlusSquare, LayersIcon, Star } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { ImportDialog } from './ImportDialog';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -11,7 +11,7 @@ interface EditingState {
 }
 
 export function CollectionDetails() {
-  const { collections, currentCollection, deleteCard, deleteAllCards, editCard, addCards, setCurrentCollection } = useStore();
+  const { collections, currentCollection, deleteCard, deleteAllCards, editCard, addCards, setCurrentCollection, resetCollectionStats } = useStore();
   const [editingCard, setEditingCard] = useState<EditingState | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -47,6 +47,10 @@ export function CollectionDetails() {
     ? Math.round((stats.correctAnswers / stats.timesTried) * 100)
     : 0;
 
+  const notStudied = currentCards.filter(card => card.repetitions === 0).length;
+  const notQuite = currentCards.filter(card => card.repetitions > 0 && card.easeFactor < 2.5).length;
+  const mastered = currentCards.filter(card => card.repetitions > 0 && card.easeFactor >= 2.5).length;
+
   const handleTrashClick = () => {
     if (isEmpty) {
       setIsShaking(true);
@@ -58,15 +62,7 @@ export function CollectionDetails() {
 
   const handleResetStats = () => {
     if (currentCollection) {
-      const resetCards = currentCards.map(card => ({
-        ...card,
-        lastReviewed: Date.now(),
-        nextReview: Date.now(),
-        interval: 0,
-        easeFactor: 2.5,
-        repetitions: 0
-      }));
-      addCards(currentCollection, resetCards);
+      resetCollectionStats(currentCollection);
       setShowResetConfirm(false);
     }
   };
@@ -74,7 +70,7 @@ export function CollectionDetails() {
   return (
     <div className="mt-8">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold dark:text-white">Collection Cards</h2>
+        <h2 className="text-xl font-semibold dark:text-white">collection cards</h2>
         <div className="flex gap-2">
           <button
             onClick={handleTrashClick}
@@ -99,29 +95,64 @@ export function CollectionDetails() {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-          <h3 className="text-sm text-gray-500 dark:text-gray-400">Total Cards</h3>
+          <h3 className="text-sm text-gray-500 dark:text-gray-400">total cards</h3>
           <p className="text-2xl font-semibold dark:text-white">{stats.totalCards}</p>
         </div>
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-          <h3 className="text-sm text-gray-500 dark:text-gray-400">Times Studied</h3>
+          <h3 className="text-sm text-gray-500 dark:text-gray-400">times studied</h3>
           <p className="text-2xl font-semibold dark:text-white">{stats.timesTried}</p>
         </div>
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-          <h3 className="text-sm text-gray-500 dark:text-gray-400">Accuracy Rate</h3>
+          <h3 className="text-sm text-gray-500 dark:text-gray-400">accuracy rate</h3>
           <p className="text-2xl font-semibold dark:text-white">{accuracy}%</p>
         </div>
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-          <h3 className="text-sm text-gray-500 dark:text-gray-400">Cards Mastered</h3>
+          <h3 className="text-sm text-gray-500 dark:text-gray-400">cards mastered</h3>
           <p className="text-2xl font-semibold dark:text-white">{stats.correctAnswers}</p>
+        </div>
+      </div>
+
+      <div className="bg-gray-900 p-6 rounded-xl mb-8">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-2xl font-bold text-white">cards to study</h3>
+          <div className="text-5xl font-bold text-white">{currentCards.length}</div>
+        </div>
+
+        <div className="relative h-2 bg-gray-800 rounded-full mb-6">
+          <div
+            className="absolute h-full rounded-full bg-gradient-to-r from-green-400 via-yellow-400 to-green-400"
+            style={{ width: `${(mastered / currentCards.length) * 100}%` }}
+          />
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          <div className="flex items-center gap-3">
+            <PlusSquare className="w-6 h-6 text-gray-400" />
+            <div>
+              <div className="text-2xl font-bold text-white">{notStudied}</div>
+              <div className="text-sm text-gray-400">havent studied</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <LayersIcon className="w-6 h-6 text-yellow-400" />
+            <div>
+              <div className="text-2xl font-bold text-white">{notQuite}</div>
+              <div className="text-sm text-gray-400">almost there?</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Star className="w-6 h-6 text-green-400" />
+            <div>
+              <div className="text-2xl font-bold text-white">{mastered}</div>
+              <div className="text-sm text-gray-400">got it!</div>
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="space-y-4">
         {currentCards.map((card, index) => (
-          <div
-            key={card.id}
-            className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow"
-          >
+          <div key={card.id} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
             <div className="flex justify-between items-start">
               <div className="space-y-2 flex-1">
                 {editingCard?.id === card.id ? (
@@ -171,11 +202,18 @@ export function CollectionDetails() {
                   </div>
                 ) : (
                   <>
-                    <p className="font-medium dark:text-white">
+                    <p className="font-medium dark:text-white flex items-center">
+                      {card.repetitions === 0 ? (
+                        <PlusSquare className="w-4 h-4 text-gray-400 mr-2" />
+                      ) : card.easeFactor < 2.5 ? (
+                        <LayersIcon className="w-4 h-4 text-yellow-400 mr-2" />
+                      ) : (
+                        <Star className="w-4 h-4 text-green-400 mr-2" />
+                      )}
                       <span className="text-gray-500 mr-2">#{index + 1}</span>
-                      Q: {card.question}
+                      {card.question}
                     </p>
-                    <p className="text-gray-600 dark:text-gray-300">A: {card.answer}</p>
+                    <p className="text-gray-600 dark:text-gray-300">{card.answer}</p>
                   </>
                 )}
               </div>
