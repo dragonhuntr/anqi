@@ -240,8 +240,8 @@ export const FlashCard: React.FC<FlashCardProps> = () => {
             <div className="absolute inset-0 p-8 flex flex-col">
               <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">question</div>
               <div className="flex-1 flex items-center justify-center">
-                <p className="text-xl text-center break-words max-w-full overflow-auto dark:text-white">
-                  {dueCards[currentCardIndex]?.question || ''}
+                <p className="text-xl text-center break-words max-w-full dark:text-white">
+                <LatexRenderer content={dueCards[currentCardIndex]?.question || ''} />
                 </p>
               </div>
             </div>

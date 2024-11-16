@@ -23,6 +23,7 @@
 
 .katex-display > .katex {
   max-width: 100% !important;
+  max-height: 100% !important;
   white-space: normal !important;
   display: block;
   overflow: visible !important;

@@ -27,7 +27,7 @@ function App() {
               onClick={() => navigate('/')}
               className="text-2xl font-bold text-gray-900 dark:text-white cursor-pointer"
             >
-              Anqi AI
+              anqi
             </h1>
             <div className="flex items-center space-x-4">
               <button

@@ -60,5 +60,42 @@ export interface ProcessingResult<T> {
 
 export interface ProcessingOptions extends GenerationOptions {
   contentType: 'text' | 'image';
+  format?: string;
   customPrompt?: string;
+}
+
+export interface APIResponse<T> {
+  data?: T;
+  error?: string;
+}
+
+export interface QuestionResponse {
+  content: string;
+}
+
+export interface ProcessedContent {
+  pairs?: Array<{
+    question: string;
+    answer: string;
+  }>;
+  error?: string;
+}
+
+export interface ImportDialogProps {
+  onImport: (cards: Partial<Flashcard>[]) => void;
+  onClose: () => void;
+}
+
+export interface FileProgress {
+  fileName: string;
+  progress: number;
+  status: 'processing' | 'complete' | 'error';
+  error?: string;
+}
+
+export interface FormOptions {
+  complexity: 'basic' | 'intermediate' | 'advanced';
+  focus: string;
+  numQuestions: number;
+  pastedContent: string;
 }

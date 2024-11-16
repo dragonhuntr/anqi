@@ -17,7 +17,7 @@ export function Stats({ stats }: StatsProps) {
           <Trophy className="w-6 h-6 text-blue-500 dark:text-blue-300" />
         </div>
         <div>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Current Streak</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">current streak</p>
           <p className="text-xl font-semibold dark:text-white">{stats.streak} cards</p>
         </div>
       </div>
@@ -27,7 +27,7 @@ export function Stats({ stats }: StatsProps) {
           <Target className="w-6 h-6 text-green-500 dark:text-green-300" />
         </div>
         <div>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Accuracy</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">accuracy</p>
           <p className="text-xl font-semibold dark:text-white">{accuracy}%</p>
         </div>
       </div>
@@ -37,7 +37,7 @@ export function Stats({ stats }: StatsProps) {
           <Calendar className="w-6 h-6 text-purple-500 dark:text-purple-300" />
         </div>
         <div>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Cards Studied</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">cards studied</p>
           <p className="text-xl font-semibold dark:text-white">{stats.cardsStudied}</p>
         </div>
       </div>

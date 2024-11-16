@@ -28,7 +28,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-lg w-full">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold dark:text-white">API Settings</h2>
+          <h2 className="text-xl font-semibold dark:text-white">api settings</h2>
           <button
             onClick={onClose}
             className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
@@ -47,7 +47,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
               value={config.API_URL}
               onChange={(e) => setConfig({ ...config, API_URL: e.target.value })}
               className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              placeholder="https://api.example.com/v1/completions"
+              placeholder="https://api.together.xyz/v1/chat/completions"
             />
           </div>
 
@@ -92,7 +92,7 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
             >
               {isSaving && <LoadingSpinner size="sm" />}
               <Save className="w-4 h-4" />
-              Save Settings
+              save settings
             </button>
           </div>
         </div>
