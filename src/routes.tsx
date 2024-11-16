@@ -3,6 +3,7 @@ import App from './App';
 import { CollectionDetails } from './components/CollectionDetails';
 import { FlashCard } from './components/FlashCard';
 import { PlayLayout } from './layouts/PlayLayout';
+import { NotFound } from './components/NotFound';
 
 export const router = createBrowserRouter([
   {
@@ -13,7 +14,8 @@ export const router = createBrowserRouter([
         path: 'collection/:collectionId',
         element: <CollectionDetails />
       }
-    ]
+    ],
+    errorElement: <NotFound />
   },
   {
     path: 'collection/:collectionId/play',
@@ -23,6 +25,11 @@ export const router = createBrowserRouter([
         path: '',
         element: <FlashCard />
       }
-    ]
+    ],
+    errorElement: <NotFound />
+  },
+  {
+    path: '*',
+    element: <NotFound />
   }
 ]); 

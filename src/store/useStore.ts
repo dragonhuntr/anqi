@@ -27,6 +27,7 @@ interface State {
   editCard: (collectionId: string, cardId: string, question: string, answer: string) => void;
 
   resetCollectionStats: (collectionId: string) => void;
+  incrementTimesPlayed: (collectionId: string) => void;
 }
 
 export const useStore = create<State>()(
@@ -52,6 +53,7 @@ export const useStore = create<State>()(
             topic,
             dateAdded: Date.now(),
             cards: [],
+            timesPlayed: 0,
           },
         ],
       })),
@@ -89,38 +91,41 @@ export const useStore = create<State>()(
         ),
       })),
 
-      updateCard: (collectionId, cardId, quality) => set((state) => {
-        const collection = state.collections.find((c) => c.id === collectionId);
-        if (!collection) return state;
+      updateCard: (collectionId: string, cardId: string, quality: number) => 
+        set((state) => {
+          const collection = state.collections.find((c) => c.id === collectionId);
+          if (!collection) return state;
 
-        const cardIndex = collection.cards.findIndex((c) => c.id === cardId);
-        if (cardIndex === -1) return state;
+          const card = collection.cards.find((c) => c.id === cardId);
+          if (!card) return state;
 
-        const card = collection.cards[cardIndex];
-        const { nextInterval, newEaseFactor } = calculateNextReview(quality, card);
+          const { nextInterval, newEaseFactor, repetitions } = calculateNextReview(quality, {
+            interval: card.interval,
+            easeFactor: card.easeFactor,
+            repetitions: card.repetitions,
+          });
 
-        return {
-          collections: state.collections.map((c) =>
-            c.id === collectionId
-              ? {
-                ...c,
-                cards: c.cards.map((card) =>
-                  card.id === cardId
-                    ? {
-                      ...card,
-                      lastReviewed: Date.now(),
-                      nextReview: Date.now() + nextInterval * 24 * 60 * 60 * 1000,
-                      interval: nextInterval,
-                      easeFactor: newEaseFactor,
-                      repetitions: quality >= 3 ? card.repetitions + 1 : 0,
-                    }
-                    : card
-                ),
-              }
-              : c
-          ),
-        };
-      }),
+          return {
+            collections: state.collections.map((c) =>
+              c.id === collectionId
+                ? {
+                    ...c,
+                    cards: c.cards.map((card) =>
+                      card.id === cardId
+                        ? {
+                            ...card,
+                            interval: nextInterval,
+                            easeFactor: newEaseFactor,
+                            repetitions,
+                            lastReviewed: Date.now(),
+                          }
+                        : card
+                    ),
+                  }
+                : c
+            ),
+          };
+        }),
 
       toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
       deleteCard: (collectionId, cardId) =>
@@ -186,6 +191,14 @@ export const useStore = create<State>()(
           )
         }))
       },
+
+      incrementTimesPlayed: (collectionId) => set((state) => ({
+        collections: state.collections.map((c) =>
+          c.id === collectionId
+            ? { ...c, timesPlayed: c.timesPlayed + 1 }
+            : c
+        ),
+      })),
     }),
     {
       name: 'flashcards-storage',

@@ -1,4 +1,5 @@
 const MINIMUM_EASE_FACTOR = 1.3;
+const PENALTY_FACTOR = 0.8;
 
 export function calculateNextReview(
   quality: number,
@@ -10,10 +11,11 @@ export function calculateNextReview(
 ): {
   nextInterval: number;
   newEaseFactor: number;
+  repetitions: number;
 } {
   let { interval, easeFactor, repetitions } = card;
   
-  // Adjust ease factor based on answer quality (0-5)
+  // adjust ease factor based on answer quality (0-5)
   const newEaseFactor = Math.max(
     MINIMUM_EASE_FACTOR,
     easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
@@ -21,10 +23,11 @@ export function calculateNextReview(
 
   let nextInterval;
   if (quality < 3) {
-    // If failed, reset intervals
-    nextInterval = 1;
-    repetitions = 0;
+    // if failed, apply penalty to current interval
+    nextInterval = Math.max(1, Math.floor(interval * PENALTY_FACTOR));
+    repetitions = Math.max(0, repetitions - 1);
   } else {
+    // success case - increase interval
     if (repetitions === 0) {
       nextInterval = 1;
     } else if (repetitions === 1) {
@@ -32,10 +35,12 @@ export function calculateNextReview(
     } else {
       nextInterval = Math.round(interval * newEaseFactor);
     }
+    repetitions += 1;
   }
 
   return {
     nextInterval,
     newEaseFactor,
+    repetitions
   };
 }

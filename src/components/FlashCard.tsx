@@ -45,6 +45,9 @@ export const FlashCard: React.FC<FlashCardProps> = () => {
         : currentCards.filter((card) => card.nextReview <= Date.now());
       
       if (dueCards.length === 0 || isReplaying) {
+        if (cardsToUse.length > 0 && !dueCards.length) {
+          useStore.getState().incrementTimesPlayed(currentCollection);
+        }
         setDueCards(shuffleCards(cardsToUse));
       }
       
@@ -52,7 +55,7 @@ export const FlashCard: React.FC<FlashCardProps> = () => {
         useStore.setState({ currentCardIndex: 0 });
       }
     }
-  }, [currentCollection, collections, isReplaying]);
+  }, [currentCollection, isReplaying]);
 
   useEffect(() => {
     if (!isFlipped && dueCards[currentCardIndex]) {
@@ -73,15 +76,18 @@ export const FlashCard: React.FC<FlashCardProps> = () => {
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
+        e.preventDefault();
         setIsFlipped((prev) => !prev);
       } else if (e.code === 'ArrowRight') {
-        if (isFlipped) setIsFlipped(false);
-        if (currentCardIndex < dueCards.length - 1) {
+        if (isFlipped) {
+          setIsFlipped(false);
+        } else if (currentCardIndex < dueCards.length - 1) {
           useStore.setState({ currentCardIndex: currentCardIndex + 1 });
         }
       } else if (e.code === 'ArrowLeft') {
-        if (isFlipped) setIsFlipped(false);
-        if (currentCardIndex > 0) {
+        if (isFlipped) {
+          setIsFlipped(false);
+        } else if (currentCardIndex > 0) {
           useStore.setState({ currentCardIndex: currentCardIndex - 1 });
         }
       } else if (e.key >= '1' && e.key <= '5' && isFlipped) {
@@ -143,23 +149,25 @@ export const FlashCard: React.FC<FlashCardProps> = () => {
     setIsFlipped(false);
     
     setTimeout(async () => {
-      if (dueCards[currentCardIndex] && currentCollection) {
-        updateCard(currentCollection, dueCards[currentCardIndex].id, rating);
-        updateStats(rating >= 3);
-        
-        const isLastCard = currentCardIndex === dueCards.length - 1;
-        const updatedCards = collections.find(
-          (c) => c.id === currentCollection
-        )?.cards ?? [];
-        
-        if (isLastCard || updatedCards.every(isCardMastered)) {
-          setIsReplaying(false);
-        }
+      if (!currentCollection || !dueCards[currentCardIndex]) return;
+
+      // update card and stats
+      updateCard(currentCollection, dueCards[currentCardIndex].id, rating);
+      updateStats(rating >= 3);
+      
+      // get updated due cards based on intervals
+      const updatedDueCards = currentCards.filter(card => 
+        // check if card needs review based on interval
+        card.interval === 0 || !isCardMastered(card)
+      );
+      
+      if (currentCardIndex >= dueCards.length - 1 || updatedDueCards.length === 0) {
+        setIsReplaying(false);
+        useStore.setState({ currentCardIndex: 0 });
+        return;
       }
 
-      if (currentCardIndex < dueCards.length - 1) {
-        useStore.setState({ currentCardIndex: currentCardIndex + 1 });
-      }
+      useStore.setState({ currentCardIndex: currentCardIndex + 1 });
     }, 200);
   };
 

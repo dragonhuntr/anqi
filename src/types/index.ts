@@ -22,6 +22,7 @@ export interface FlashcardCollection {
   dateAdded: number;
   topic: string;
   cards: Flashcard[];
+  timesPlayed: number;
 }
 
 export type ViewMode = 'edit' | 'play' | null;

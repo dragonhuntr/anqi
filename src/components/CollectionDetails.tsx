@@ -36,15 +36,15 @@ export function CollectionDetails() {
   const currentCards = collection?.cards || [];
   const isEmpty = currentCards.length === 0;
 
-  // calculate collection stats
-  const stats = currentCards.reduce((acc, card) => ({
-    totalCards: acc.totalCards + 1,
-    timesTried: acc.timesTried + card.repetitions,
-    correctAnswers: acc.correctAnswers + (card.repetitions > 0 ? 1 : 0),
-  }), { totalCards: 0, timesTried: 0, correctAnswers: 0 });
+  const stats = {
+    totalCards: currentCards.length,
+    timesPlayed: collection?.timesPlayed || 0,
+    studiedCards: currentCards.filter(card => card.repetitions > 0).length,
+    correctAnswers: currentCards.filter(card => card.repetitions > 0 && card.easeFactor >= 2.5).length
+  };
 
-  const accuracy = stats.timesTried > 0
-    ? Math.round((stats.correctAnswers / stats.timesTried) * 100)
+  const accuracy = stats.studiedCards > 0
+    ? Math.min(Math.round((stats.correctAnswers / stats.studiedCards) * 100), 100)
     : 0;
 
   const notStudied = currentCards.filter(card => card.repetitions === 0).length;
@@ -100,7 +100,7 @@ export function CollectionDetails() {
         </div>
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
           <h3 className="text-sm text-gray-500 dark:text-gray-400">times studied</h3>
-          <p className="text-2xl font-semibold dark:text-white">{stats.timesTried}</p>
+          <p className="text-2xl font-semibold dark:text-white">{stats.timesPlayed}</p>
         </div>
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
           <h3 className="text-sm text-gray-500 dark:text-gray-400">accuracy rate</h3>
