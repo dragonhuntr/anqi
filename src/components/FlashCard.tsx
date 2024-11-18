@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, RotateCcw, Maximize2, Minimize2 } from 'lucide-react';
+import { RotateCcw, Maximize2, Minimize2 } from 'lucide-react';
 import { LatexRenderer } from './LatexRenderer';
 import Confetti from 'react-confetti';
 import { useStore } from '../store/useStore';
-import { isCardMastered } from '../utils/validation';
 import { Flashcard } from '../types';
 import { useNavigate } from 'react-router-dom';
 
-interface FlashCardProps {}
+interface FlashCardProps { }
 
 export const FlashCard: React.FC<FlashCardProps> = () => {
   const navigate = useNavigate();
@@ -22,6 +21,8 @@ export const FlashCard: React.FC<FlashCardProps> = () => {
   const [dueCards, setDueCards] = useState<Flashcard[]>([]);
   const [isReplaying, setIsReplaying] = useState<boolean>(false);
   const [currentAnswer, setCurrentAnswer] = useState<string>('');
+  const [ratedCards, setRatedCards] = useState<Set<string>>(new Set());
+  const [progress, setProgress] = useState(0);
 
   const {
     collections,
@@ -31,27 +32,51 @@ export const FlashCard: React.FC<FlashCardProps> = () => {
     updateStats,
   } = useStore();
 
-  const shuffleCards = (cards: Flashcard[]): Flashcard[] => 
+  const shuffleCards = (cards: Flashcard[]): Flashcard[] =>
     [...cards].sort(() => Math.random() - 0.5);
 
   const currentCards = currentCollection
     ? collections.find((c) => c.id === currentCollection)?.cards ?? []
     : [];
 
+  const isComplete = currentCardIndex === (dueCards.length - 1) &&
+    dueCards.length > 0 &&
+    currentCards.every(card => ratedCards.has(card.id));
+
+  // debug logs
+  useEffect(() => {
+    console.log({
+      currentCardIndex,
+      dueCardsLength: dueCards.length,
+      isFlipped,
+      isComplete,
+      totalCards: currentCards.length,
+      ratedCardsSize: ratedCards.size,
+      currentCollectionId: currentCollection,
+      isReplaying
+    } as const);
+  }, [
+    currentCardIndex,
+    dueCards.length,
+    isFlipped,
+    isComplete,
+    currentCards.length,
+    ratedCards.size,
+    currentCollection,
+    isReplaying
+  ]);
+
   useEffect(() => {
     if (currentCollection && collections.length > 0) {
-      const cardsToUse = isReplaying 
-        ? currentCards 
-        : currentCards.filter((card) => card.nextReview <= Date.now());
-      
-      if (dueCards.length === 0 || isReplaying) {
-        if (cardsToUse.length > 0 && !dueCards.length) {
-          useStore.getState().incrementTimesPlayed(currentCollection);
-        }
-        setDueCards(shuffleCards(cardsToUse));
-      }
-      
-      if (currentCardIndex >= cardsToUse.length) {
+      const now = Date.now();
+      // get only cards that are due for review
+      const dueCardsToUse = currentCards.filter((card) => {
+        return isReplaying || card.nextReview <= now;
+      });
+
+      if (dueCardsToUse.length > 0) {
+        // shuffle cards and set them
+        setDueCards([...dueCardsToUse].sort(() => Math.random() - 0.5));
         useStore.setState({ currentCardIndex: 0 });
       }
     }
@@ -75,21 +100,11 @@ export const FlashCard: React.FC<FlashCardProps> = () => {
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
+      if (isComplete) return;
+
       if (e.code === 'Space') {
         e.preventDefault();
         setIsFlipped((prev) => !prev);
-      } else if (e.code === 'ArrowRight') {
-        if (isFlipped) {
-          setIsFlipped(false);
-        } else if (currentCardIndex < dueCards.length - 1) {
-          useStore.setState({ currentCardIndex: currentCardIndex + 1 });
-        }
-      } else if (e.code === 'ArrowLeft') {
-        if (isFlipped) {
-          setIsFlipped(false);
-        } else if (currentCardIndex > 0) {
-          useStore.setState({ currentCardIndex: currentCardIndex - 1 });
-        }
       } else if (e.key >= '1' && e.key <= '5' && isFlipped) {
         const rating = parseInt(e.key);
         handleRating(rating);
@@ -98,7 +113,7 @@ export const FlashCard: React.FC<FlashCardProps> = () => {
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [isFlipped, currentCardIndex, dueCards.length]);
+  }, [isFlipped, isComplete]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -112,64 +127,84 @@ export const FlashCard: React.FC<FlashCardProps> = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const isLastCard = currentCardIndex === dueCards.length - 1 && currentCards.every(isCardMastered);
-
-  useEffect(() => {
-    if (isLastCard && isFlipped) {
-      setShowConfetti(true);
-      const timer = setTimeout(() => setShowConfetti(false), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [isLastCard, isFlipped]);
-
   const handleReplay = () => {
+    setIsFlipped(false);
     setIsReplaying(true);
-    useStore.setState({ currentCardIndex: 0 });
-    
+    setRatedCards(new Set());
+    setProgress(0);
+    setShowConfetti(false);
+    setCurrentAnswer('');
+
+    // reset all cards to initial state
     const allCards = [...currentCards].map(card => ({
       ...card,
       nextReview: Date.now(),
       repetitions: 0,
       interval: 0,
-      easeFactor: 2.5
+      easeFactor: 2.5,
+      lastReview: null // reset last review date
     }));
-    
+
     if (currentCollection) {
-      const updatedCollection = collections.map(c => 
+      // reset collection state
+      const updatedCollection = collections.map(c =>
         c.id === currentCollection ? { ...c, cards: allCards } : c
       );
-      useStore.setState({ collections: updatedCollection });
+      
+      useStore.setState({ 
+        collections: updatedCollection,
+        currentCardIndex: 0 // reset immediately instead of setTimeout
+      });
+      
       navigate(`/collection/${currentCollection}/play`);
     }
-    
+
+    // shuffle and set new cards
     setDueCards(shuffleCards(allCards));
   };
 
-  const handleRating = async (rating: number) => {
-    setIsFlipped(false);
+  const handleRating = (rating: number) => {
+    if (!currentCollection || !dueCards[currentCardIndex]) return;
     
-    setTimeout(async () => {
-      if (!currentCollection || !dueCards[currentCardIndex]) return;
-
-      // update card and stats
-      updateCard(currentCollection, dueCards[currentCardIndex].id, rating);
-      updateStats(rating >= 3);
-      
-      // get updated due cards based on intervals
-      const updatedDueCards = currentCards.filter(card => 
-        // check if card needs review based on interval
-        card.interval === 0 || !isCardMastered(card)
-      );
-      
-      if (currentCardIndex >= dueCards.length - 1 || updatedDueCards.length === 0) {
-        setIsReplaying(false);
-        useStore.setState({ currentCardIndex: 0 });
-        return;
-      }
-
-      useStore.setState({ currentCardIndex: currentCardIndex + 1 });
-    }, 200);
+    const currentCard = dueCards[currentCardIndex];
+    
+    // update card with new spaced repetition values
+    updateCard(currentCollection, currentCard.id, rating);
+    
+    // update stats
+    updateStats(rating >= 3);
+    
+    // track this card as rated
+    setRatedCards(prev => new Set([...prev, currentCard.id]));
+    
+    // move to next card
+    const nextIndex = currentCardIndex + 1;
+    if (nextIndex < dueCards.length) {
+      setIsFlipped(false);
+      setTimeout(() => {
+        useStore.setState({ currentCardIndex: nextIndex });
+      }, 200);
+    } else {
+      setShowConfetti(true);
+    }
   };
+
+  useEffect(() => {
+    if (isComplete) {
+      setShowConfetti(true);
+      const timer = setTimeout(() => setShowConfetti(false), 2000);
+      return () => clearTimeout(timer);
+    }
+    else {}
+  }, [isFlipped, currentCardIndex, dueCards.length, currentCards, ratedCards]);
+
+  useEffect(() => {
+    if (currentCards.length === 0) return;
+    
+    // calculate progress based on current session's rated cards
+    const progressPercentage = (ratedCards.size / dueCards.length) * 100;
+    setProgress(Math.min(progressPercentage, 100));
+  }, [ratedCards.size, dueCards.length]);
 
   if (dueCards.length === 0) {
     return (
@@ -192,9 +227,6 @@ export const FlashCard: React.FC<FlashCardProps> = () => {
       </div>
     );
   }
-
-  const masteredCount = currentCards.filter(isCardMastered).length;
-  const isComplete = isLastCard && isFlipped;
 
   return (
     <div className="w-full max-w-2xl mx-auto p-4">
@@ -227,7 +259,7 @@ export const FlashCard: React.FC<FlashCardProps> = () => {
         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
           <div
             className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${(masteredCount / currentCards.length) * 100}%` }}
+            style={{ width: `${progress}%` }}
           />
         </div>
       </div>
@@ -237,7 +269,11 @@ export const FlashCard: React.FC<FlashCardProps> = () => {
           className="w-full h-full relative preserve-3d cursor-pointer"
           animate={{ rotateY: isFlipped ? 180 : 0 }}
           transition={{ duration: 0.6, type: 'spring', damping: 20 }}
-          onClick={() => setIsFlipped(!isFlipped)}
+          onClick={() => {
+            if (!isComplete) {
+              setIsFlipped(!isFlipped);
+            }
+          }}
           style={{ transformStyle: 'preserve-3d' }}
         >
           {/* question side */}
@@ -249,7 +285,7 @@ export const FlashCard: React.FC<FlashCardProps> = () => {
               <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">question</div>
               <div className="flex-1 flex items-center justify-center">
                 <p className="text-xl text-center break-words max-w-full dark:text-white">
-                <LatexRenderer content={dueCards[currentCardIndex]?.question || ''} />
+                  <LatexRenderer content={dueCards[currentCardIndex]?.question || ''} />
                 </p>
               </div>
             </div>
@@ -277,7 +313,9 @@ export const FlashCard: React.FC<FlashCardProps> = () => {
                       key={rating}
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleRating(rating);
+                        if (!isComplete) {
+                          handleRating(rating);
+                        }
                       }}
                       className={`w-12 h-12 rounded-full flex items-center justify-center text-white
                         ${rating <= 2
@@ -291,7 +329,7 @@ export const FlashCard: React.FC<FlashCardProps> = () => {
                     </button>
                   ))}
                 </div>
-                {isLastCard && (
+                {isComplete && (
                   <div className="mt-4">
                     <button
                       onClick={(e) => {
@@ -323,48 +361,26 @@ export const FlashCard: React.FC<FlashCardProps> = () => {
       </div>
 
       <div className="flex justify-center items-center gap-4 mt-8">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (currentCardIndex > 0) {
-              useStore.setState({ currentCardIndex: currentCardIndex - 1 });
-            }
-          }}
-          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-        >
-          <ChevronLeft className="w-6 h-6 dark:text-white" />
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsFlipped(!isFlipped);
-          }}
-          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-        >
-          <RotateCcw className="w-6 h-6 dark:text-white" />
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (currentCardIndex < dueCards.length - 1) {
-              useStore.setState({ currentCardIndex: currentCardIndex + 1 });
-            }
-          }}
-          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-        >
-          <ChevronRight className="w-6 h-6 dark:text-white" />
-        </button>
+        {!isComplete && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsFlipped(!isFlipped);
+            }}
+            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            <RotateCcw className="w-6 h-6 dark:text-white" />
+          </button>
+        )}
       </div>
 
       {isComplete && (
         <div className="text-center mt-6">
           <h3 className="text-xl font-semibold text-green-500 dark:text-green-400 mb-2">
-            {masteredCount === currentCards.length
-              ? "all cards mastered! 🎉 🌟" 
-              : "keep practicing to master all cards! 💪 📚"}
+            session complete! 🎉
           </h3>
           <p className="text-gray-600 dark:text-gray-300">
-            {masteredCount} out of {currentCards.length} cards mastered!
+            you reviewed {currentCards.length} cards
           </p>
         </div>
       )}

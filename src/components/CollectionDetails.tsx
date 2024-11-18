@@ -63,6 +63,7 @@ export function CollectionDetails() {
   const handleResetStats = () => {
     if (currentCollection) {
       resetCollectionStats(currentCollection);
+      useStore.setState({ currentCardIndex: 0 });
       setShowResetConfirm(false);
     }
   };

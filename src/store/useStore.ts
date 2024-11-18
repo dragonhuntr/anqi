@@ -99,7 +99,7 @@ export const useStore = create<State>()(
           const card = collection.cards.find((c) => c.id === cardId);
           if (!card) return state;
 
-          const { nextInterval, newEaseFactor, repetitions } = calculateNextReview(quality, {
+          const { interval, easeFactor, repetitions, nextReview } = calculateNextReview(quality, {
             interval: card.interval,
             easeFactor: card.easeFactor,
             repetitions: card.repetitions,
@@ -114,9 +114,10 @@ export const useStore = create<State>()(
                       card.id === cardId
                         ? {
                             ...card,
-                            interval: nextInterval,
-                            easeFactor: newEaseFactor,
+                            interval,
+                            easeFactor,
                             repetitions,
+                            nextReview,
                             lastReviewed: Date.now(),
                           }
                         : card
